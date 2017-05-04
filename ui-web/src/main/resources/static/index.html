@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script type="text/javascript" src="scripts/jquery.js"></script>
+<script type="text/javascript" src="scripts/es5-shim.min.js"></script>
+<script type="text/javascript" src="scripts/promise-6.1.0.js"></script>
+<script type="text/javascript" src="scripts/Generator.js"></script>
+
+<script>
+    g = new Generator("http://localhost:9999");
+
+    function go() {
+        var projectId = "";
+
+        g.login("user", "deng669593").then(function () {
+            return g.createProject({
+                developerName: "cn.dyr",
+                projectName: "library",
+                packageName: "cn.dyr.library",
+                displayName: "Library",
+                version: "1.0-SNAPSHOT"
+            })
+        }).then(function (data) {
+            projectId = data["projectId"];
+            console.log("project created! id=" + projectId)
+        }).then(function() {
+            return g.createDatabaseInfo({
+                "projectId": projectId, 
+                "type": 1,
+                "host": "localhost", 
+                "username": "root", 
+                "password": "popkart.alex9498", 
+                "dbName": "spring"
+            });
+        }).then(function () {
+            return g.createEntity({
+                "projectId": projectId,
+                "name": "Book",
+                "description": "表示书本的实体"
+            });
+        }).then(function () {
+            return g.createAttribute({
+                "projectId": projectId,
+                "entityName": "Book",
+                "name": "id",
+                "type": 4,
+                "mandatory": true,
+                "primaryIdentifier": true
+            });
+        }).then(function () {
+            return g.createAttribute({
+                "projectId": projectId,
+                "entityName": "Book",
+                "name": "name",
+                "type": 8,
+                "length": 255
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Book", 
+                "name": "price", 
+                "type": 5
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Book", 
+                "name": "isbn", 
+                "type": 8
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Book", 
+                "name": "category", 
+                "type": 8
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Book", 
+                "name": "publishDate", 
+                "type": 10
+            });
+        }).then(function() {
+            return g.createEntity({
+                "projectId": projectId,
+                "name": "Person", 
+                "description": "表示人的实体"
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Person", 
+                "name": "id", 
+                "type": 4, 
+                "mandatory": true,
+                "primaryIdentifier": true
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Person", 
+                "name": "name", 
+                type: 8
+            });
+        }).then(function() {
+            return g.createEntity({
+                "projectId": projectId, 
+                "name": "Publisher", 
+                "description": "表示出版社的实体"
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Publisher", 
+                "name": "id", 
+                "type": 4, 
+                "mandatory": true,
+                "primaryIdentifier": true   
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Publisher", 
+                "name": "name", 
+                "type": 8
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Publisher", 
+                "name": "location", 
+                "type": 8
+            });
+        }).then(function() {
+            return g.createAttribute({
+                "projectId": projectId, 
+                "entityName": "Publisher", 
+                "name": "telephone", 
+                "type": 8
+            });
+        }).then(function() {
+            return g.createRelationship({
+                "projectId": projectId, 
+                "entityA": "Book", 
+                "entityB": "Person", 
+                "handlerEntity": "Book", 
+                "direction": 1,
+                "entityAAttribute": "authors",
+                "type": 4
+            });
+        }).then(function() {
+            return g.createRelationship({
+                "projectId": projectId, 
+                "entityA": "Book", 
+                "entityB": "Person", 
+                "direction": 1,
+                "entityAAttribute": "translators",
+                "type": 4, 
+                "handlerEntity": "Book"
+            });
+        }).then(function() {
+            return g.createRelationship({
+                "projectId": projectId, 
+                "entityA": "Book",
+                "entityB": "Publisher", 
+                "entityAAttribute": "publisher", 
+                "type": 3,
+                "direction": 1,
+                "handlerEntity": "Book"
+            });
+        }).then(function() {
+            return g.createJob(projectId);
+        }).then(function() {
+            console.log("finish!");
+        })
+    }
+</script>
+</body>
+</html>

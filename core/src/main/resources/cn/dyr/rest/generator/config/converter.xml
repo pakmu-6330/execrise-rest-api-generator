@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<converter-config>
+    <converters>
+        <name-converter>cn.dyr.rest.generator.converter.name.KeywordFilterConverter</name-converter>
+        <type-converter>cn.dyr.rest.generator.converter.type.DefaultTypeConverter</type-converter>
+        <field-converter>cn.dyr.rest.generator.converter.field.DefaultFieldConverter</field-converter>
+
+        <entity-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultEntityClassConverter</entity-class-converter>
+
+        <dao-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultDAOConverter</dao-class-converter>
+
+        <service-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultServiceConverter</service-class-converter>
+        <service-instruction-converter>cn.dyr.rest.generator.converter.instruction.DefaultServiceInstructionConverter</service-instruction-converter>
+
+        <controller-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultControllerConverter</controller-class-converter>
+        <controller-method-converter>cn.dyr.rest.generator.converter.method.DefaultControllerMethodConverter</controller-method-converter>
+
+        <hateoas-resource-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultResourceClassConverter</hateoas-resource-class-converter>
+        <hateoas-assembler-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultResourceAssemblerConverter</hateoas-assembler-class-converter>
+    </converters>
+
+    <packages>
+        <po-package>po</po-package>
+        <dao-package>dao</dao-package>
+        <service-package>service</service-package>
+        <controller-package>controller</controller-package>
+        <resource-class-package>hateoas.resource</resource-class-package>
+        <resource-assembler-package>hateoas.assembler</resource-assembler-package>
+        <common-package>common</common-package>
+        <exception-package>exception</exception-package>
+    </packages>
+
+    <parameters>
+        <builder-style-setter>false</builder-style-setter>
+        <paging-enabled>true</paging-enabled>
+        <table-prefix>t_</table-prefix>
+        <uri-prefix>/v1</uri-prefix>
+        <default-page-size>5</default-page-size>
+    </parameters>
+</converter-config>

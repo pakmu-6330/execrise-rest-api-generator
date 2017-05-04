@@ -1,0 +1,16 @@
+本文档用于描述调用接口所需的参数常量及其含义
+
+1. 数据库类型
+   1    MYSQL 数据库
+
+2. 属性类型
+   1    byte
+   2    short
+   3    int
+   4    long
+   5    float
+   6    double
+   7    fixed string
+   8    var string
+   9    boolean
+   10   datetime

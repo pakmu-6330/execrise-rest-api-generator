@@ -1,0 +1,164 @@
+* 如无特殊说明，Token 均需要通过 HTTP Authorization 头携带
+
+1. 用户注册
+地址：/users
+方法：POST
+权限：匿名
+参数：
+    username   必填  用户名
+    password   必填  密码
+    email      必填  邮箱地址
+
+2. 使用验证码
+地址：/users/verify/{code}
+方法：POST
+权限：匿名
+参数：无
+
+3. 登录
+地址：/token
+方法：POST
+权限：匿名
+参数：
+    username   必填  用户名
+    password   必填  密码
+返回值：
+    200         登录成功
+    403         登录失败，用户名或者密码错误
+
+4. 注销
+地址：/token
+方法：DELETE
+权限：已登录用户
+参数：
+    token      必填  登录得到的 Token
+
+5. Token 续约
+地址：/token/new
+方法：POST
+权限：已登录用户
+参数：
+    token      必填  登录得到的 Token
+
+6. 创建工程
+地址：/projects
+方法：POST
+权限：已认证用户
+参数：
+    token          必填  登录 Token
+    developerName  必填  作者名称
+    projectName    必填  项目名称
+    packageName    必填  包名
+    displayName    可选  项目的显示名称（默认值为项目名称加上一个四位随机数）
+    version        可选  项目的版本（默认值为 1.0-SNAPSHOT）
+
+7. 设置工程的数据库信息
+地址：/projects/{projectId}/db
+方法：POST, PUT
+权限：已认证用户
+路径参数：
+    projectId     创建工程时所生成的流水号
+参数：
+    token         必填  登录 Token
+    type          必填  数据库类型（详情见常量表）
+    host          必填  数据库服务器主机名
+    username      必填  数据库用户名
+    password      必填  数据库密码
+    dbName        必填  数据库名称
+
+8. 往工程当中保存一个实体信息
+地址：/projects/{projectId}/entities
+方法：POST, PUT
+权限：已认证用户
+路径参数：
+    projectId     创建工程时所生成的流水号
+参数：
+    token         必填  登录 Token
+    name          必填  实体的名称
+    description   可选  实体的描述信息，如果没有，则采用实体名称作为描述信息
+
+9. 往实体当中保存一个属性信息
+地址：/projects/{projectId}/entities/{entityName}/attributes
+方法：POST, PUT
+权限：已认证用户
+路径参数：
+    projectId     创建工程时所生成的流水号
+    entityName    实体名称
+参数：
+    token               必填  登录 Token
+    name                必填  属性名称
+    type                必填  属性类型（详情见常量表）
+    mandatory           可选  表示这个属性为必填属性，默认为 false
+    primaryIdentifier   可选  表示这个属性为唯一标识符，默认为 false
+    length              可选  表示这个值的长度，默认为 255
+    expose              可选  表示这个值是否会暴露给客户
+    description         可选  描述这个属性的值，默认与属性名称相同
+    asSelectCondition   可选  在业务当中是否为使用这个属性作为查询条件，默认为 false
+
+ 10. 查看一个工程信息
+ 地址：/projects/{projectId}
+ 方法：GET
+ 权限：已认证用户
+ 路径参数：
+    projectId       创建工程时所产生的流水号
+ 参数：无
+
+ 11. 获得实体当中的所有属性信息
+ 地址：/projects/{projectId}/entities/{entityName}/attributes
+ 方法：GET
+ 权限：已认证用户
+ 路径参数：
+    projectId       创建工程时所生成的流水号
+    entityName      实体名称
+ 参数：
+    token           必填  登录 Token
+
+ 12. 获得实体当中的其中一个属性
+ 地址：/projects/{projectId}/entities/{entityName}/attributes/{attribute}
+ 方法：GET
+ 权限：已认证用户
+ 路径参数：
+    projectId       创建工程时所生成的流水号
+    entityName      实体名称
+    attribute       属性名称
+参数：
+    token           必填  登录 Token
+
+13. 提交一个代码生成作业
+地址：/jobs/{projectId}
+方法：POST
+权限：已认证用户
+路径参数：
+    projectId       创建工程时生成的流水号
+头参数：
+    token           登录 Token
+
+14. 往工程当中添加一个关联关系
+地址：/projects/{projectId}/relationships
+方法：POST, PUT
+权限：已认证用户
+路径参数：
+    projectId       创建工程时产生的流水号
+头参数：
+    token           必填  登录 Token
+参数：
+    entityA             必填  关联关系 A 端的实体名称
+    entityB             必填  关联关系 B 端的实体名称
+    handlerEntity       必填  关联关系的主控方
+    type                必填  表示关联关系的类型
+        1   表示一对一关系
+        2   表示一对多关系
+        3   表示多对一关系
+        4   表示多对多关系
+
+    direction           必填  表示关联关系的方向
+        1   表示从 A 端到 B 端的单向关联
+        2   表示从 B 端到 A 端的单向关联
+        3   表示双向关联
+
+    entityAAttribute    表示关联关系在 A 端对应的属性名称
+    entityBAttribute    表示关联关系在 B 端对应的属性名称
+        该字段在不同的情况下可选条件不一样。
+            如果关联关系由 A 端进行维护（即 A 端为关联关系的主控方），则 entityAAttribute 为必填字段；
+            如果在这种情况下，关联关系的方向配置为 2 或 3（均为 B 端到 A 端具有关联属性），则 entityBAttribute 为必填字段
+        关联关系由 B 端维护时必填可选状况类似
