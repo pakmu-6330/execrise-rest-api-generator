@@ -21,7 +21,6 @@ import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
-import cn.dyr.rest.generator.java.meta.flow.expression.VariableExpression;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 
@@ -209,42 +208,36 @@ public class DefaultServiceConverter implements IServiceConverter {
                 this.convertDataContext.findByHandler(entityInfo.getName());
         List<IInstruction> relationshipOperationInstruction = new ArrayList<>();
 
+        boolean firstRelationship = true;
+        IInstruction instruction = null;
+
         for (ConvertDataContext.RelationshipHandler handler : thisRelationshipHandler) {
             RelationshipType type = handler.getType();
 
             switch (type) {
-                case MANY_TO_ONE: {
-                    IInstruction instruction = this.instructionConverter.manyToOneHandlerServiceSave(handler, entityVariableName);
-                    if (instruction != null) {
-                        IInstruction comment = InstructionFactory.singleLineComment("处理 " + handler.getHandlerFieldName() + " 的关联关系");
-                        relationshipOperationInstruction.add(InstructionFactory.sequence(comment, instruction));
-                    }
+                case MANY_TO_ONE:
+                    instruction = this.instructionConverter.manyToOneHandlerServiceSave(handler, entityVariableName);
+                    break;
+                case ONE_TO_ONE:
+                    instruction = this.instructionConverter.oneToOneHandlerServiceSave(handler, entityVariableName);
+                    break;
+                case MANY_TO_MANY:
+                    instruction = this.instructionConverter.manyToManyHandlerServiceSave(handler, entityVariableName);
+                    break;
+                case ONE_TO_MANY:
+                    instruction = this.instructionConverter.oneToManyHandlerServiceSave(handler, entityVariableName);
+                    break;
+            }
+
+            if (instruction != null) {
+                if (firstRelationship) {
+                    firstRelationship = false;
+                } else {
+                    relationshipOperationInstruction.add(InstructionFactory.emptyInstruction());
                 }
-                break;
-                case ONE_TO_ONE: {
-                    IInstruction instruction = this.instructionConverter.oneToOneHandlerServiceSave(handler, entityVariableName);
-                    if (instruction != null) {
-                        IInstruction comment = InstructionFactory.singleLineComment("处理 " + handler.getHandlerFieldName() + " 的关联关系");
-                        relationshipOperationInstruction.add(InstructionFactory.sequence(comment, instruction));
-                    }
-                }
-                break;
-                case MANY_TO_MANY: {
-                    IInstruction instruction = this.instructionConverter.manyToManyHandlerServiceSave(handler, entityVariableName);
-                    if (instruction != null) {
-                        IInstruction comment = InstructionFactory.singleLineComment("处理 " + handler.getHandlerFieldName() + " 的关联关系");
-                        relationshipOperationInstruction.add(InstructionFactory.sequence(comment, instruction));
-                    }
-                }
-                break;
-                case ONE_TO_MANY: {
-                    IInstruction instruction = this.instructionConverter.oneToManyHandlerServiceSave(handler, entityVariableName);
-                    if (instruction != null) {
-                        IInstruction comment = InstructionFactory.singleLineComment("处理 " + handler.getHandlerFieldName() + " 的关联关系");
-                        relationshipOperationInstruction.add(InstructionFactory.sequence(comment, instruction));
-                    }
-                }
-                break;
+
+                IInstruction comment = InstructionFactory.singleLineComment("处理 " + handler.getHandlerFieldName() + " 的关联关系");
+                relationshipOperationInstruction.add(InstructionFactory.sequence(comment, instruction));
             }
         }
 

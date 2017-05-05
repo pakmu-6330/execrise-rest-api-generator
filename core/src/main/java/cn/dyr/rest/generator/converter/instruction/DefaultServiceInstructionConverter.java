@@ -275,6 +275,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
         ClassInfo handlerEntityClass = this.convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
         ClassInfo handledEntityClass = this.convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
         String handlerDAODefaultFieldName = this.convertDataContext.getDAODefaultFieldName(handler.getHandler());
+        String handledDAODefaultFieldName = this.convertDataContext.getDAODefaultFieldName(handler.getToBeHandled());
 
         // 根据类似的规则
         String methodName = this.nameConverter.reversedDAOQueryMethodName(handler);
@@ -282,13 +283,33 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         List<IInstruction> instructions = new ArrayList<>();
 
-        // #1 反向查询相应的列表
+        // #1 反向查询相应的列表（如果关联关系为单向）
+        // #1 如果关联关系为双向，则获得当前对象，根据相应的 get 方法获得
         TypeInfo handlerResultListType = CollectionsTypeFactory.listWithGeneric(handlerEntityClass.getType());
-        IInstruction reversedQueryInstruction = variableDeclaration(handlerResultListType, checkResultName,
-                variable(handlerDAODefaultFieldName).invokeMethod(methodName, new Object[]{
-                        variable(idVariableName)
-                }));
-        instructions.add(reversedQueryInstruction);
+
+        if (!handler.isBidirectional()) {
+            IInstruction reversedQueryInstruction = variableDeclaration(handlerResultListType, checkResultName,
+                    variable(handlerDAODefaultFieldName).invokeMethod(methodName, new Object[]{
+                            variable(idVariableName)
+                    }));
+            instructions.add(reversedQueryInstruction);
+        } else {
+            // #1.1 寻找到指定编号的本对象
+            IInstruction findThisEntityInstruction = InstructionFactory.variableDeclaration(handledEntityClass.getType(), "entity",
+                    ValueExpressionFactory.variable(handledDAODefaultFieldName).invokeMethod("findOne", new Object[]{
+                            ValueExpressionFactory.variable(idVariableName)
+                    }));
+            instructions.add(findThisEntityInstruction);
+
+            // #1.2 将这个对象关联的列表赋值到指定的变量上
+            MethodInfo listGetterMethod = handledEntityClass.getterMethod(handler.getHandledFieldName());
+            IInstruction assignmentInstruction = InstructionFactory.variableDeclaration(handlerResultListType, checkResultName,
+                    ValueExpressionFactory.variable("entity").invokeMethod(listGetterMethod.getName()));
+            instructions.add(assignmentInstruction);
+
+            // #1.3 为了好看，增加一行空语句
+            instructions.add(InstructionFactory.emptyInstruction());
+        }
 
         // #3 抛出异常
         ClassInfo dbConstraintClass = this.convertDataContext.getCommonClass(ConverterContext.KEY_DB_CONSTRAINT_EXCEPTION);

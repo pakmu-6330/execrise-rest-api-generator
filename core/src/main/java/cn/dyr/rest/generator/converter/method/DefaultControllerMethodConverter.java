@@ -29,7 +29,6 @@ import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
-import javax.print.Doc;
 import java.util.Objects;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
@@ -533,7 +532,7 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
                 notFoundReturnInstruction).setElse(foundReturnInstruction).build();
 
         return new MethodInfo()
-                .addAnnotationInfo(SpringMVCAnnotationFactory.getMapping("/{id}/publisher"))
+                .addAnnotationInfo(SpringMVCAnnotationFactory.getMapping("/{id}/" + relationshipHandler.getHandlerFieldName()))
                 .setReturnValueType(returnType)
                 .setName(methodName)
                 .addParameter(idParameter)
@@ -662,7 +661,7 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
         // 创建 Swagger 相关的注解
         AnnotationInfo apiOperation =
-                SwaggerAnnotationFactory.apiOperation(DocumentGeneratorUtils.getRelatedEntityInfo(entityInfo.getName(), handledEntityInfo.getDescription()));
+                SwaggerAnnotationFactory.apiOperation(DocumentGeneratorUtils.getRelatedEntityInfo(entityInfo.getDescription(), handledEntityInfo.getDescription()));
         AnnotationInfo ok =
                 SwaggerAnnotationFactory.createHttpOkResponse(DocumentGeneratorUtils.gotten(handledEntityInfo.getDescription()));
         AnnotationInfo notFound =
