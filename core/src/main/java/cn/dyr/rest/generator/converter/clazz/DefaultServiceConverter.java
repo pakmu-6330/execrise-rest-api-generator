@@ -25,6 +25,7 @@ import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -421,6 +422,61 @@ public class DefaultServiceConverter implements IServiceConverter {
         updateMethod.setRootInstruction(rootInstruction);
 
         return updateMethod;
+    }
+
+    /**
+     * 用于更新关联对象的 service 方法的生成方法
+     *
+     * @param entityInfo 实体对象
+     * @return 这个主控实体对象维护相关关联关系方法的列表
+     */
+    private List<MethodInfo> relatedEntityUpdateMethods(EntityInfo entityInfo) {
+        List<ConvertDataContext.RelationshipHandler> list = this.convertDataContext.findByHandler(entityInfo.getName());
+        if (list == null || list.size() == 0) {
+            return Collections.emptyList();
+        }
+
+        List<MethodInfo> retValues = new ArrayList<>();
+        for (ConvertDataContext.RelationshipHandler handler : list) {
+            MethodInfo methodInfo = relatedEntityUpdateMethod(handler);
+            retValues.add(methodInfo);
+        }
+
+        return retValues;
+    }
+
+    /**
+     * 用于更新关联对象的 service 方法的生成方法
+     *
+     * @param handler 关联关系对象
+     * @return 维护这个关联关系的更新方法
+     */
+    private MethodInfo relatedEntityUpdateMethod(ConvertDataContext.RelationshipHandler handler) {
+        String handledEntityName = handler.getToBeHandled();
+        String handlerEntityName = handler.getHandler();
+
+        ClassInfo handledEntityClass = this.convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handlerEntityClass = this.convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+
+        String handlerFieldName = handler.getHandlerFieldName();
+
+        // 1. 产生方法的基本信息
+        FieldInfo handlerClassIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
+
+        String methodName = String.format("update%s", StringUtils.upperFirstLatter(handlerFieldName));
+        String handledEntityVariableName = StringUtils.lowerFirstLatter(handlerEntityName);
+
+        MethodInfo methodInfo = new MethodInfo()
+                .setName(methodName)
+                .setReturnValueType(handledEntityClass.getType())
+                .addAnnotationInfo(SpringFrameworkAnnotationFactory.transactional())
+                .addParameter(ParameterFactory.create(handlerClassIdField.getType(), "id"))
+                .addParameter(ParameterFactory.create(handledEntityClass.getType(), handledEntityVariableName));
+
+        // 2. 各种指令的产生
+        //
+
+        return methodInfo;
     }
 
     @Override
