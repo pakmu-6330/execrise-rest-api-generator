@@ -29,7 +29,7 @@ public class AttributeTable extends JTable {
     private static Logger logger;
 
     private static String[] COLUMNS_NAME = {
-            "属性名", "描述", "类型", "是否作为实体唯一标识符", "是否作为查询条件"
+            "属性名", "描述", "类型", "实体唯一标识符", "必填项", "查询条件"
     };
 
     static {
@@ -112,7 +112,7 @@ public class AttributeTable extends JTable {
     private class AttributeTableModel extends DefaultTableModel {
 
         private boolean checkRange(int row, int col) {
-            return !(col < 0 || col > 4) && !(row < 0 || row >= attributeModelList.size());
+            return !(col < 0 || col > 5) && !(row < 0 || row >= attributeModelList.size());
 
         }
 
@@ -125,6 +125,7 @@ public class AttributeTable extends JTable {
                     return String.class;
                 case 3:
                 case 4:
+                case 5:
                     return Boolean.class;
                 default:
                     logger.warn("unexpected col index: {}", columnIndex);
@@ -154,6 +155,8 @@ public class AttributeTable extends JTable {
                 case 3:
                     return attributeModel.isPrimaryIdentifier();
                 case 4:
+                    return attributeModel.isMandatory();
+                case 5:
                     return attributeModel.isAsSelectionCondition();
                 default:
                     logger.warn("unexpected col index: {}", column);
@@ -184,6 +187,9 @@ public class AttributeTable extends JTable {
                         attributeModel.setPrimaryIdentifier((Boolean) aValue);
                         break;
                     case 4:
+                        attributeModel.setMandatory((Boolean) aValue);
+                        break;
+                    case 5:
                         attributeModel.setAsSelectionCondition((Boolean) aValue);
                         break;
                     default:

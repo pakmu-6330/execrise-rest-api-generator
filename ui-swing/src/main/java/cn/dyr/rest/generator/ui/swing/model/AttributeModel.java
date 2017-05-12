@@ -13,6 +13,7 @@ public class AttributeModel implements Serializable {
     private String name;
     private String description;
     private String type;
+    private boolean mandatory;
     private boolean primaryIdentifier;
     private boolean asSelectionCondition;
 
@@ -59,5 +60,13 @@ public class AttributeModel implements Serializable {
     public AttributeModel setAsSelectionCondition(boolean asSelectionCondition) {
         this.asSelectionCondition = asSelectionCondition;
         return this;
+    }
+
+    public boolean isMandatory() {
+        return mandatory;
+    }
+
+    public void setMandatory(boolean mandatory) {
+        this.mandatory = mandatory;
     }
 }

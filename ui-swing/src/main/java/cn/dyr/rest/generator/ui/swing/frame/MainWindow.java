@@ -18,7 +18,6 @@ import cn.dyr.rest.generator.ui.swing.panel.GenerationPanel;
 import cn.dyr.rest.generator.ui.swing.panel.HomePanel;
 import cn.dyr.rest.generator.ui.swing.panel.ProjectInfoPanel;
 import cn.dyr.rest.generator.ui.swing.panel.RelationshipInfoPanel;
-import jdk.nashorn.internal.scripts.JO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -391,7 +389,7 @@ public class MainWindow
         if (projectModel != null) {
             BasicInfoModel basicInfo = projectModel.getBasicInfo();
             if (basicInfo != null) {
-                setTitle(String.format("REST API 生成器 - %s", basicInfo.getProjectName()));
+                setTitle(String.format("%s - %s", SwingUIApplication.APP_NAME, basicInfo.getProjectName()));
             }
         }
     }
@@ -501,6 +499,12 @@ public class MainWindow
                             this.expandRoot();
                             this.expandEntityNode();
                             this.expandRelationshipNode();
+
+                            // 更新标题栏
+                            String title = String.format(
+                                    "%s - %s", SwingUIApplication.APP_NAME,
+                                    application.getProjectModel().getBasicInfo().getProjectName());
+                            setTitle(title);
                         });
 
                     } catch (JAXBException exception) {
