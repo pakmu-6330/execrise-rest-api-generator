@@ -131,6 +131,7 @@ public class DefaultDAOConverter implements IDAOConverter {
 
         // 2.3. 对于在属性信息当中配置好在数据库中会用于数据库查询条件的字段生成相应的方法
         Iterator<FieldInfo> infoIterator = entityClass.iterateFields();
+
         while (infoIterator.hasNext()) {
             FieldInfo fieldInfo = infoIterator.next();
 

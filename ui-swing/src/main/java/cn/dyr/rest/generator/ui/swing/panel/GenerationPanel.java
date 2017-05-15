@@ -41,29 +41,46 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
     // <editor-fold desc="界面相关代码">
 
     private JTextField targetFileURL;
+    private JTextField targetExecutableURL;
     private JFileChooser fileChooser;
 
     private JPanel outputPanel;
+    private JPanel executableOutputPanel;
 
     private JButton generateButton;
     private JButton browserButton;
+    private JButton executableGenerateButton;
+    private JButton executableBrowserButton;
 
     private void initComponents() {
         this.fileChooser = new JFileChooser();
         this.fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
         this.outputPanel = new JPanel(new GridLayout(3, 1));
-        this.outputPanel.setBorder(BorderFactory.createTitledBorder("输出信息"));
+        this.outputPanel.setBorder(BorderFactory.createTitledBorder("代码输出信息"));
+
+        this.executableOutputPanel = new JPanel(new GridLayout(3, 1));
+        this.executableOutputPanel.setBorder(BorderFactory.createTitledBorder("可执行文件输出"));
 
         this.generateButton = new JButton("生成");
         this.generateButton.addActionListener(this);
 
+        this.executableGenerateButton = new JButton("生成");
+        this.executableGenerateButton.addActionListener(this);
+
         this.browserButton = new JButton("浏览");
         this.browserButton.addActionListener(this);
+
+        this.executableBrowserButton = new JButton("浏览");
+        this.executableBrowserButton.addActionListener(this);
 
         this.targetFileURL = new JTextField();
         this.targetFileURL.setEditable(false);
 
+        this.targetExecutableURL = new JTextField();
+        this.targetExecutableURL.setEditable(false);
+
+        // 代码输出的面板
         // 面板的第一行
         JLabel label = new JLabel("请选择输出的目标目录：");
         JPanel firstRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -81,7 +98,30 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
         lastRow.add(this.generateButton);
         outputPanel.add(lastRow);
 
-        this.add(outputPanel, BorderLayout.NORTH);
+        // 可执行文件输出的面板
+        // 第一行
+        JLabel executable = new JLabel("请选择可执行文件的输出路径：");
+        JPanel executableFirstRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        executableFirstRow.add(executable);
+        this.executableOutputPanel.add(executableFirstRow);
+
+        // 第二行
+        JPanel executableSecondRow = new JPanel(new BorderLayout());
+        executableSecondRow.add(this.targetExecutableURL, BorderLayout.CENTER);
+        executableSecondRow.add(this.executableBrowserButton, BorderLayout.EAST);
+        this.executableOutputPanel.add(executableSecondRow);
+
+        // 第三行
+        JPanel executableLastRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        executableLastRow.add(this.executableGenerateButton);
+        this.executableOutputPanel.add(executableLastRow);
+
+        // 用于组织两个面板的临时面板
+        JPanel mainPanel = new JPanel(new GridLayout(2, 1));
+        mainPanel.add(this.outputPanel);
+        mainPanel.add(this.executableOutputPanel);
+
+        this.add(mainPanel, BorderLayout.NORTH);
     }
 
     // </editor-fold>
