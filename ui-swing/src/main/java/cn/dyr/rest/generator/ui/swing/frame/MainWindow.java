@@ -633,7 +633,27 @@ public class MainWindow
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        Object source = e.getSource();
+        if (e.getClickCount() == 1 && e.isMetaDown() && e.getButton() == MouseEvent.BUTTON3) {
+            int selectedRow = this.projectTree.getRowForLocation(e.getX(), e.getY());
+            TreePath selectedNodePath = this.projectTree.getPathForLocation(e.getX(), e.getY());
 
+            // 根据选中的结点类型弹出不同的上下文菜单
+            if (selectedRow != -1 && selectedNodePath != null) {
+                Object[] pathNodes = selectedNodePath.getPath();
+
+                if (pathNodes.length == 3) {
+                    WithIdNode targetNode = (WithIdNode) pathNodes[2];
+                    Object model = this.getModelFromNodeId(targetNode.getId());
+
+                    if (model instanceof EntityModel) {
+                        System.out.println("右键单击了实体");
+                    } else if (model instanceof RelationshipModel) {
+                        System.out.println("右键单击了关系实体");
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -865,6 +885,15 @@ public class MainWindow
         // 3. 清除相应的数据
         removeNodeToComponent(nodeId);
         removeNodeToModel(nodeId);
+    }
+
+    /**
+     * 执行实体信息的删除操作，用于工程树的右键单击菜单
+     *
+     * @param entityModel 要执行实体删除操作的实体信息对象
+     */
+    private void deleteEntity(EntityModel entityModel) {
+
     }
 
     private class WithIdNode extends DefaultMutableTreeNode {

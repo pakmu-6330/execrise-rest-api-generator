@@ -447,6 +447,16 @@ public class ProjectContext {
     }
 
     /**
+     * 获得这个实体对象被哪个关联关系所维护
+     *
+     * @return 这个实体对象被维护的关联关系的列表
+     */
+    public List<RelationshipModel> getRelationshipListEntityHandled(EntityModel entityModel) {
+        RelatedRelationshipData relationshipData = this.relationshipDataByEntityId.get(entityModel.getId());
+        return relationshipData.handled;
+    }
+
+    /**
      * 设置工程的数据库信息
      *
      * @param dbInfo    数据库信息

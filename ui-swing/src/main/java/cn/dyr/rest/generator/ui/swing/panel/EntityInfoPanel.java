@@ -12,7 +12,6 @@ import cn.dyr.rest.generator.ui.swing.model.EntityModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
 import cn.dyr.rest.generator.ui.swing.util.IdGenerator;
-import jdk.nashorn.internal.scripts.JO;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -21,7 +20,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
-import java.awt.Container;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -288,6 +286,24 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
                         SwingUIApplication.APP_NAME, JOptionPane.INFORMATION_MESSAGE);
             }
         } else if (source == this.btnDeleteEntity) {
+            // 检查这个关系实体是否处于被维护的位置，如果是，不允许直接进行删除操作
+            List<RelationshipModel> entityHandled = projectContext.getRelationshipListEntityHandled(this.entityModel);
+            if (!newEntity && entityHandled != null && entityHandled.size() > 0) {
+                StringBuilder builder = new StringBuilder();
+                builder.append("当前实体在下面关联关系中处于被维护方：");
+                builder.append(System.lineSeparator());
+
+                for (RelationshipModel relationshipModel : entityHandled) {
+                    builder.append(relationshipModel.getName());
+                    builder.append(System.lineSeparator());
+                }
+
+                builder.append("当前实体不能被删除，请确认后再执行删除操作！");
+                JOptionPane.showMessageDialog(this, builder.toString(),
+                        SwingUIApplication.APP_NAME, JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             int result = JOptionPane.showConfirmDialog(
                     this, "您确定要删除这个实体吗？该操作不可恢复！",
                     SwingUIApplication.APP_NAME, JOptionPane.YES_NO_OPTION);
@@ -306,6 +322,7 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
                     this.dirty = false;
 
                     List<RelationshipModel> entityHandles = projectContext.getRelationshipListEntityHandles(this.entityModel);
+
                     if (entityHandles != null && entityHandles.size() > 0) {
                         StringBuilder builder = new StringBuilder();
                         builder.append("当前实体维护着下面的关联关系：");
