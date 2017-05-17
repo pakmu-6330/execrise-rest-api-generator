@@ -8,6 +8,7 @@ import cn.dyr.rest.generator.java.meta.flow.expression.EmptyValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.EnumerationValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.PrefixSingleOperandOperationExpression;
+import cn.dyr.rest.generator.java.meta.flow.expression.TernaryValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.VariableExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.constant.BooleanValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.constant.ByteValueExpression;
@@ -476,4 +477,25 @@ public class ValueExpressionFactory {
 
         return new EnumerationValueExpression(enumClass, member);
     }
+
+    /**
+     * 创建一个三元运算符的值表达式
+     *
+     * @param condition 条件
+     * @param yes       条件成立的表达式
+     * @param no        条件不成立的表达式
+     * @return 对应的三元运算符的表达式
+     */
+    public static IValueExpression ternaryValue(
+            IValueExpression condition, IValueExpression yes, IValueExpression no) {
+        Objects.requireNonNull(condition, "ternary condition is null");
+        Objects.requireNonNull(yes, "ternary yes value is null");
+        Objects.requireNonNull(no, "ternary no value is null");
+
+        return new TernaryValueExpression()
+                .setCondition(condition)
+                .setYesValueExpression(yes)
+                .setNoValueExpression(no);
+    }
+
 }

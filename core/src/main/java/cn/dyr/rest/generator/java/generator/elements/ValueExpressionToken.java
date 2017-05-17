@@ -13,11 +13,14 @@ import cn.dyr.rest.generator.java.meta.flow.expression.EnumerationValueExpressio
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.PrefixSingleOperandOperationExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.SuffixSingleOperandOperationExpression;
+import cn.dyr.rest.generator.java.meta.flow.expression.TernaryValueExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.VariableExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.constant.AbstractConstantExpression;
 import cn.dyr.rest.generator.java.meta.flow.expression.constant.StringValueExpression;
 import cn.dyr.rest.generator.java.meta.parameters.value.ParameterValue;
 import cn.dyr.rest.generator.util.CommaStringBuilder;
+
+import java.util.Objects;
 
 /**
  * 所有的值表达式到 java 语法标识的转换类都在这里
@@ -189,6 +192,24 @@ public class ValueExpressionToken implements IToken {
             String member = ((EnumerationValueExpression) valueExpression).getMember();
 
             targetValue = typeInfoToken.toString() + "." + member;
+        } else if (valueExpression instanceof TernaryValueExpression) {
+            TernaryValueExpression expression = (TernaryValueExpression) valueExpression;
+            Objects.requireNonNull(expression.getCondition(), "ternary: condition is null");
+            Objects.requireNonNull(expression.getYesValueExpression(), "ternary: yes expression is null");
+            Objects.requireNonNull(expression.getNoValueExpression(), "ternary: no expression is null");
+
+            StringBuilder builder = new StringBuilder();
+            ValueExpressionToken conditionValueExpression = new ValueExpressionToken(expression.getCondition());
+            ValueExpressionToken yesConditionValueExpression = new ValueExpressionToken(expression.getYesValueExpression());
+            ValueExpressionToken noConditionValueExpression = new ValueExpressionToken(expression.getNoValueExpression());
+
+            builder.append(conditionValueExpression.toString());
+            builder.append(" ? ");
+            builder.append(yesConditionValueExpression.toString());
+            builder.append(" : ");
+            builder.append(noConditionValueExpression.toString());
+
+            targetValue = builder.toString();
         } else {
             throw new IllegalArgumentException("unsupported value expression type: " + valueExpression.getClass().getName());
         }

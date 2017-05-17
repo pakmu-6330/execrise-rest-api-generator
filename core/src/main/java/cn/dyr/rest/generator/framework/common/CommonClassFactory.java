@@ -15,7 +15,6 @@ import cn.dyr.rest.generator.java.meta.ConstructorMethodInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
 import cn.dyr.rest.generator.java.meta.MethodInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
-import cn.dyr.rest.generator.java.meta.factory.AnnotationFactory;
 import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
 import cn.dyr.rest.generator.java.meta.factory.MethodInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ParameterFactory;
@@ -247,25 +246,29 @@ public class CommonClassFactory {
         // 1.3.1 构造函数的指令
         // 1.3.1.1  this.content = page.getContent();
         IValueExpression thisReference = ValueExpressionFactory.thisReference();
+        IValueExpression pageVariable = ValueExpressionFactory.variable("page");
         IInstruction contentAssignmentInstruction = InstructionFactory.assignment(
                 thisReference.accessField("content"),
-                ValueExpressionFactory.variable("page").invokeMethod("getContent", new Object[]{})
+                pageVariable.invokeMethod("getContent", new Object[]{})
         );
 
         // 1.3.1.2. 创建第一页的链接
         IValueExpression firstPageBuildPageLinkValue = thisReference.invokeMethod("buildPageLink", new Object[]{0,
-                ValueExpressionFactory.variable("page").invokeMethod("getSize", new Object[]{}),
+                pageVariable.invokeMethod("getSize", new Object[]{}),
                 ValueExpressionFactory.stringExpression("first")});
         IInstruction firstPageInstruction = InstructionFactory.invoke(
                 thisReference, "add", new Object[]{firstPageBuildPageLinkValue});
 
         // 1.3.1.3. 创建最后一页的链接
+        // 1.3.1.3.1. 创建最后一页连接的三元运算符
+        IValueExpression conditionValue = ValueExpressionFactory.logicalEqual(
+                pageVariable.invokeMethod("getTotalPages"), ValueExpressionFactory.intExpression(0));
+        IValueExpression zeroIntValue = ValueExpressionFactory.intDefault();
+        IValueExpression lastPageValue = ValueExpressionFactory.subtract(pageVariable.invokeMethod("getTotalPages"), ValueExpressionFactory.intExpression(1));
+
         IValueExpression lastPageBuildPageLinkValue = thisReference.invokeMethod("buildPageLink", new Object[]{
-                ValueExpressionFactory.subtract(
-                        ValueExpressionFactory.variable("page").invokeMethod("getTotalPages", new Object[]{}),
-                        ValueExpressionFactory.intExpression(1)
-                ),
-                ValueExpressionFactory.variable("page").invokeMethod("getSize", new Object[]{}),
+                ValueExpressionFactory.ternaryValue(conditionValue, zeroIntValue, lastPageValue),
+                pageVariable.invokeMethod("getSize", new Object[]{}),
                 ValueExpressionFactory.stringExpression("last")
         });
         IInstruction lastPageInstruction = InstructionFactory.invoke(
@@ -273,8 +276,8 @@ public class CommonClassFactory {
 
         // 1.3.1.4. 创建本页的链接
         IValueExpression selfPageBuildPageLinkValue = thisReference.invokeMethod("buildPageLink", new Object[]{
-                ValueExpressionFactory.variable("page").invokeMethod("getNumber", new Object[]{}),
-                ValueExpressionFactory.variable("page").invokeMethod("getSize", new Object[]{}),
+                pageVariable.invokeMethod("getNumber", new Object[]{}),
+                pageVariable.invokeMethod("getSize", new Object[]{}),
                 ValueExpressionFactory.stringExpression("self")
         });
         IInstruction selfPageInstruction = InstructionFactory.invoke(
@@ -282,12 +285,12 @@ public class CommonClassFactory {
 
         // 1.3.1.5. 创建上一页的链接
         IValueExpression prevPageCondition = ValueExpressionFactory.logicalNot(
-                ValueExpressionFactory.variable("page").invokeMethod("isFirst", new Object[]{}));
+                pageVariable.invokeMethod("isFirst", new Object[]{}));
         IValueExpression prevPageBuildLinkValue = thisReference.invokeMethod("buildPageLink", new Object[]{
                 ValueExpressionFactory.subtract(
-                        ValueExpressionFactory.variable("page").invokeMethod("getNumber", new Object[]{}),
+                        pageVariable.invokeMethod("getNumber", new Object[]{}),
                         ValueExpressionFactory.intExpression(1)),
-                ValueExpressionFactory.variable("page").invokeMethod("getSize", new Object[]{}),
+                pageVariable.invokeMethod("getSize", new Object[]{}),
                 ValueExpressionFactory.stringExpression("prev")
         });
         IInstruction prevPageLinkInstruction = InstructionFactory.choiceBuilder(
@@ -296,12 +299,12 @@ public class CommonClassFactory {
 
         // 1.3.1.6. 创建下一页的链接
         IValueExpression nextPageCondition = ValueExpressionFactory.logicalNot(
-                ValueExpressionFactory.variable("page").invokeMethod("isLast", new Object[]{}));
+                pageVariable.invokeMethod("isLast", new Object[]{}));
         IValueExpression nextPageBuildLinkValue = thisReference.invokeMethod("buildPageLink", new Object[]{
                 ValueExpressionFactory.plus(
-                        ValueExpressionFactory.variable("page").invokeMethod("getNumber", new Object[]{}),
+                        pageVariable.invokeMethod("getNumber", new Object[]{}),
                         ValueExpressionFactory.intExpression(1)),
-                ValueExpressionFactory.variable("page").invokeMethod("getSize"),
+                pageVariable.invokeMethod("getSize"),
                 ValueExpressionFactory.stringExpression("next")
         });
         IInstruction nextPageLinkInstruction = InstructionFactory.choiceBuilder(nextPageCondition,
@@ -337,7 +340,7 @@ public class CommonClassFactory {
                         .invokeMethod("fromCurrentRequestUri", new Object[]{}));
         IInstruction urlBuildInstruction = InstructionFactory.variableDeclaration(TypeInfoFactory.stringType(), "url",
                 ValueExpressionFactory.variable("builder")
-                        .invokeMethod("queryParam", new Object[]{"page", ValueExpressionFactory.variable("page")})
+                        .invokeMethod("queryParam", new Object[]{"page", pageVariable})
                         .invokeMethod("queryParam", new Object[]{"size", ValueExpressionFactory.variable("size")})
                         .invokeMethod("build", new Object[]{})
                         .invokeMethod("toUriString", new Object[]{}));
