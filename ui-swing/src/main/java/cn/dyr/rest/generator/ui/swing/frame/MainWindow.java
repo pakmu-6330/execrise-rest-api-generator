@@ -574,59 +574,12 @@ public class MainWindow
                 switch (objectsPath.length) {
                     case 2: {
                         WithIdNode secondLevelTreeNode = (WithIdNode) objectsPath[1];
-                        JPanel panel = this.getPanelFromNodeId(secondLevelTreeNode.getId());
-
-                        if (panel == null) {
-                            Object o = this.getModelFromNodeId(secondLevelTreeNode.getId());
-
-                            if (o instanceof BasicInfoModel) {
-                                ProjectInfoPanel infoPane = new ProjectInfoPanel();
-                                this.tabbedPane.addTab("1.基本信息", infoPane);
-
-                                saveNodeToComponent(secondLevelTreeNode.getId(), infoPane);
-                                this.tabbedPane.setSelectedComponent(infoPane);
-                            } else if (o instanceof DBInfoModel) {
-                                GenerationPanel generationPanel = new GenerationPanel();
-                                this.tabbedPane.addTab("4.代码生成", generationPanel);
-
-                                saveNodeToComponent(secondLevelTreeNode.getId(), generationPanel);
-                                this.tabbedPane.setSelectedComponent(generationPanel);
-                            }
-                        } else {
-                            this.tabbedPane.setSelectedComponent(panel);
-                        }
+                        showPanelWithNodeId(secondLevelTreeNode.getId());
                     }
                     break;
                     case 3: {
                         WithIdNode thirdLevelTreeNode = (WithIdNode) objectsPath[2];
-                        JPanel panel = getPanelFromNodeId(thirdLevelTreeNode.getId());
-                        if (panel == null || this.tabbedPane.indexOfComponent(panel) == -1) {
-                            Object o = this.getModelFromNodeId(thirdLevelTreeNode.getId());
-
-                            // 防止内存泄露
-                            if (panel != null) {
-                                removeNodeToModel(thirdLevelTreeNode.getId());
-                                removeNodeToComponent(thirdLevelTreeNode.getId());
-                            }
-
-                            if (o instanceof EntityModel) {
-                                EntityInfoPanel entityInfoPanel = EntityInfoPanel.fromExistsEntity((EntityModel) o);
-
-                                this.tabbedPane.addTab(String.format("2.实体：%s", ((EntityModel) o).getName()), entityInfoPanel);
-                                saveNodeToComponent(thirdLevelTreeNode.getId(), entityInfoPanel);
-                                saveNodeToModel(thirdLevelTreeNode.getId(), (EntityModel) o);
-                                this.tabbedPane.setSelectedComponent(entityInfoPanel);
-                            } else if (o instanceof RelationshipModel) {
-                                RelationshipInfoPanel relationshipInfoPanel = RelationshipInfoPanel.fromExists((RelationshipModel) o);
-
-                                this.tabbedPane.addTab(String.format("3.关系：%s", ((RelationshipModel) o).getName()), relationshipInfoPanel);
-                                saveNodeToComponent(thirdLevelTreeNode.getId(), relationshipInfoPanel);
-                                saveNodeToModel(thirdLevelTreeNode.getId(), (RelationshipModel) o);
-                                this.tabbedPane.setSelectedComponent(relationshipInfoPanel);
-                            }
-                        } else {
-                            this.tabbedPane.setSelectedComponent(panel);
-                        }
+                        showPanelWithNodeId(thirdLevelTreeNode.getId());
                     }
                     break;
                 }
@@ -640,6 +593,7 @@ public class MainWindow
         // 打开实体
         JMenuItem openMenuItem = new JMenuItem("打开");
         openMenuItem.setMnemonic('O');
+        openMenuItem.addActionListener(new OpenPanelMenuAction(nodeId));
 
         retValue.add(openMenuItem);
 
@@ -687,6 +641,49 @@ public class MainWindow
     @Override
     public void mouseExited(MouseEvent e) {
 
+    }
+
+    private void showPanelWithNodeId(String nodeId) {
+        JPanel panel = getPanelFromNodeId(nodeId);
+        int index = this.tabbedPane.indexOfComponent(panel);
+        if (panel == null || index == -1) {
+            Object o = this.getModelFromNodeId(nodeId);
+
+            if (panel != null) {
+                removeNodeToModel(nodeId);
+                removeNodeToComponent(nodeId);
+            }
+
+            // 根据对应不同的模型类型创建不同的面板
+            if (o instanceof BasicInfoModel) {
+                ProjectInfoPanel infoPanel = new ProjectInfoPanel();
+                this.tabbedPane.addTab("1. 基本信息", infoPanel);
+
+                saveNodeToComponent(nodeId, infoPanel);
+                this.tabbedPane.setSelectedComponent(infoPanel);
+            } else if (o instanceof DBInfoModel) {
+                GenerationPanel generationPanel = new GenerationPanel();
+                this.tabbedPane.addTab("4. 代码生成", generationPanel);
+
+                saveNodeToComponent(nodeId, generationPanel);
+                this.tabbedPane.setSelectedComponent(generationPanel);
+            } else if (o instanceof EntityModel) {
+                EntityInfoPanel entityInfoPanel = EntityInfoPanel.fromExistsEntity((EntityModel) o);
+                this.tabbedPane.addTab(String.format("2. 实体：%s", ((EntityModel) o).getName()), entityInfoPanel);
+
+                saveNodeToComponent(nodeId, entityInfoPanel);
+                this.tabbedPane.setSelectedComponent(entityInfoPanel);
+            } else if (o instanceof RelationshipModel) {
+                RelationshipInfoPanel relationshipInfoPanel = RelationshipInfoPanel.fromExists((RelationshipModel) o);
+                this.tabbedPane.addTab(String.format("3. 关系：%s", ((RelationshipModel) o).getName()), relationshipInfoPanel);
+
+                saveNodeToComponent(nodeId, relationshipInfoPanel);
+                this.tabbedPane.setSelectedComponent(relationshipInfoPanel);
+            }
+
+        } else {
+            this.tabbedPane.setSelectedIndex(index);
+        }
     }
 
     private WithIdNode fromEntityModel(EntityModel entityModel) {
@@ -964,6 +961,20 @@ public class MainWindow
         @Override
         public void actionPerformed(ActionEvent e) {
             deleteEntityByNodeId(nodeId);
+        }
+    }
+
+    private final class OpenPanelMenuAction implements ActionListener {
+
+        private String nodeId;
+
+        public OpenPanelMenuAction(String nodeId) {
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            showPanelWithNodeId(nodeId);
         }
     }
 
