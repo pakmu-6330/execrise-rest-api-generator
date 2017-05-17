@@ -12,6 +12,7 @@ import cn.dyr.rest.generator.ui.swing.model.EntityModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
 import cn.dyr.rest.generator.ui.swing.util.IdGenerator;
+import cn.dyr.rest.generator.ui.swing.util.MessageBuilder;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -289,18 +290,9 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
             // 检查这个关系实体是否处于被维护的位置，如果是，不允许直接进行删除操作
             List<RelationshipModel> entityHandled = projectContext.getRelationshipListEntityHandled(this.entityModel);
             if (!newEntity && entityHandled != null && entityHandled.size() > 0) {
-                StringBuilder builder = new StringBuilder();
-                builder.append("当前实体在下面关联关系中处于被维护方：");
-                builder.append(System.lineSeparator());
-
-                for (RelationshipModel relationshipModel : entityHandled) {
-                    builder.append(relationshipModel.getName());
-                    builder.append(System.lineSeparator());
-                }
-
-                builder.append("当前实体不能被删除，请确认后再执行删除操作！");
-                JOptionPane.showMessageDialog(this, builder.toString(),
-                        SwingUIApplication.APP_NAME, JOptionPane.ERROR_MESSAGE);
+                String msg = MessageBuilder.entityDeletedDueToHandled(entityHandled);
+                JOptionPane.showMessageDialog(this, msg, SwingUIApplication.APP_NAME,
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -324,17 +316,10 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
                     List<RelationshipModel> entityHandles = projectContext.getRelationshipListEntityHandles(this.entityModel);
 
                     if (entityHandles != null && entityHandles.size() > 0) {
-                        StringBuilder builder = new StringBuilder();
-                        builder.append("当前实体维护着下面的关联关系：");
-                        builder.append(System.lineSeparator());
+                        String msg = MessageBuilder.confirmMsgForHandles(entityHandles);
 
-                        for (RelationshipModel model : entityHandles) {
-                            builder.append(model.getName());
-                            builder.append(System.lineSeparator());
-                        }
-
-                        builder.append("如果删除实体，上面的关联关系也会随之删除，是否继续？");
-                        result = JOptionPane.showConfirmDialog(this, builder.toString(), "REST API Generator", JOptionPane.YES_NO_OPTION);
+                        result = JOptionPane.showConfirmDialog(this, msg,
+                                SwingUIApplication.APP_NAME, JOptionPane.YES_NO_OPTION);
                         if (result == JOptionPane.YES_OPTION) {
                             try {
                                 projectContext.deleteEntity(entityModel, this);
@@ -344,6 +329,8 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
                                         SwingUIApplication.APP_NAME, JOptionPane.ERROR_MESSAGE);
                             }
                         }
+                    } else {
+                        projectContext.deleteEntity(entityModel, this);
                     }
                 }
             }

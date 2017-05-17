@@ -18,6 +18,7 @@ import cn.dyr.rest.generator.ui.swing.panel.GenerationPanel;
 import cn.dyr.rest.generator.ui.swing.panel.HomePanel;
 import cn.dyr.rest.generator.ui.swing.panel.ProjectInfoPanel;
 import cn.dyr.rest.generator.ui.swing.panel.RelationshipInfoPanel;
+import cn.dyr.rest.generator.ui.swing.util.MessageBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JToolBar;
@@ -55,6 +57,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -631,10 +634,29 @@ public class MainWindow
         }
     }
 
+    private JPopupMenu createEntityContextMenu(String nodeId) {
+        JPopupMenu retValue = new JPopupMenu();
+
+        // 打开实体
+        JMenuItem openMenuItem = new JMenuItem("打开");
+        openMenuItem.setMnemonic('O');
+
+        retValue.add(openMenuItem);
+
+        // 删除实体
+        JMenuItem deleteMenuItem = new JMenuItem("删除");
+        deleteMenuItem.setMnemonic('D');
+        deleteMenuItem.addActionListener(new EntityDeletePopMenuAction(nodeId));
+
+        retValue.add(deleteMenuItem);
+
+        return retValue;
+    }
+
     @Override
     public void mouseReleased(MouseEvent e) {
         Object source = e.getSource();
-        if (e.getClickCount() == 1 && e.isMetaDown() && e.getButton() == MouseEvent.BUTTON3) {
+        if (source == this.projectTree && e.getClickCount() == 1 && e.getButton() == MouseEvent.BUTTON3) {
             int selectedRow = this.projectTree.getRowForLocation(e.getX(), e.getY());
             TreePath selectedNodePath = this.projectTree.getPathForLocation(e.getX(), e.getY());
 
@@ -647,7 +669,8 @@ public class MainWindow
                     Object model = this.getModelFromNodeId(targetNode.getId());
 
                     if (model instanceof EntityModel) {
-                        System.out.println("右键单击了实体");
+                        JPopupMenu contextMenu = createEntityContextMenu(targetNode.getId());
+                        contextMenu.show(this.projectTree, e.getX(), e.getY());
                     } else if (model instanceof RelationshipModel) {
                         System.out.println("右键单击了关系实体");
                     }
@@ -890,10 +913,81 @@ public class MainWindow
     /**
      * 执行实体信息的删除操作，用于工程树的右键单击菜单
      *
-     * @param entityModel 要执行实体删除操作的实体信息对象
+     * @param nodeId 工程树中结点的 id
      */
-    private void deleteEntity(EntityModel entityModel) {
+    private void deleteEntityByNodeId(String nodeId) {
+        EntityModel entityModel = null;
+        Object rawModel = this.getModelFromNodeId(nodeId);
+        if (rawModel instanceof EntityModel) {
+            entityModel = (EntityModel) rawModel;
+        }
 
+        if (entityModel == null) {
+            return;
+        }
+
+        List<RelationshipModel> handled = projectContext.getRelationshipListEntityHandled(entityModel);
+        if (handled != null && handled.size() > 0) {
+            String msg = MessageBuilder.entityDeletedDueToHandled(handled);
+            JOptionPane.showMessageDialog(this, msg, SwingUIApplication.APP_NAME, JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        int result = JOptionPane.showConfirmDialog(
+                this, "您确定要删除这个实体吗？该操作不可恢复！",
+                SwingUIApplication.APP_NAME, JOptionPane.YES_NO_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            List<RelationshipModel> handles = projectContext.getRelationshipListEntityHandles(entityModel);
+            if (handles != null && handles.size() > 0) {
+                String msg = MessageBuilder.confirmMsgForHandles(handles);
+                result = JOptionPane.showConfirmDialog(
+                        this, msg, SwingUIApplication.APP_NAME,
+                        JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    projectContext.deleteEntity(entityModel, this.getPanelFromNodeId(nodeId));
+                }
+            } else {
+                projectContext.deleteEntity(entityModel, this.getPanelFromNodeId(nodeId));
+            }
+        }
+    }
+
+    private final class EntityDeletePopMenuAction implements ActionListener {
+
+        private String nodeId;
+
+        EntityDeletePopMenuAction(String nodeId) {
+            Objects.requireNonNull(nodeId);
+
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            deleteEntityByNodeId(nodeId);
+        }
+    }
+
+    /**
+     * 根据模型对象寻找到对应的面板
+     *
+     * @param model 模型对象
+     * @return 如果找到这个模型对应的面板，则返回这个面板对象；否则返回 null
+     */
+    private JPanel findPanelByModel(UUIDIdentifier model) {
+        String nodeId = null;
+
+        Set<Map.Entry<String, String>> entries = this.nodeToModelId.entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            if (entry.getValue().equals(model.getId())) {
+                nodeId = entry.getKey();
+                break;
+            }
+        }
+
+        if (nodeId == null) {
+            return null;
+        }
+        return this.panelIdMap.get(this.nodeToPanelId.get(nodeId));
     }
 
     private class WithIdNode extends DefaultMutableTreeNode {
