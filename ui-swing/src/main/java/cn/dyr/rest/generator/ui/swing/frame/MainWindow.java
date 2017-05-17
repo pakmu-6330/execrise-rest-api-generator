@@ -587,6 +587,26 @@ public class MainWindow
         }
     }
 
+    private JPopupMenu createRelationshipContextMenu(String nodeId) {
+        JPopupMenu retValue = new JPopupMenu();
+
+        // 打开关系
+        JMenuItem openMenuItem = new JMenuItem("打开");
+        openMenuItem.setMnemonic('O');
+        openMenuItem.addActionListener(new OpenPanelMenuAction(nodeId));
+
+        retValue.add(openMenuItem);
+
+        // 删除关系
+        JMenuItem deleteMenuItem = new JMenuItem("删除");
+        deleteMenuItem.setMnemonic('D');
+        deleteMenuItem.addActionListener(new RelationshipDeletePopMenuAction(nodeId));
+
+        retValue.add(deleteMenuItem);
+
+        return retValue;
+    }
+
     private JPopupMenu createEntityContextMenu(String nodeId) {
         JPopupMenu retValue = new JPopupMenu();
 
@@ -626,7 +646,8 @@ public class MainWindow
                         JPopupMenu contextMenu = createEntityContextMenu(targetNode.getId());
                         contextMenu.show(this.projectTree, e.getX(), e.getY());
                     } else if (model instanceof RelationshipModel) {
-                        System.out.println("右键单击了关系实体");
+                        JPopupMenu contextMenu = createRelationshipContextMenu(targetNode.getId());
+                        contextMenu.show(this.projectTree, e.getX(), e.getY());
                     }
                 }
             }
@@ -948,6 +969,46 @@ public class MainWindow
         }
     }
 
+    /**
+     * 根据工程树结点删除关系数据
+     *
+     * @param nodeId 工程树结点 id
+     */
+    private void deleteRelationshipByNodeId(String nodeId) {
+        RelationshipModel relationshipModel = null;
+        Object rawModel = this.getModelFromNodeId(nodeId);
+        if (rawModel instanceof RelationshipModel) {
+            relationshipModel = (RelationshipModel) rawModel;
+        }
+
+        if (relationshipModel == null) {
+            return;
+        }
+
+        int result = JOptionPane.showConfirmDialog(
+                this, "您确定要删除这个关系吗？删除操作不可逆！",
+                SwingUIApplication.APP_NAME, JOptionPane.YES_NO_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            projectContext.deleteRelationship(relationshipModel, this.getPanelFromNodeId(nodeId));
+        }
+    }
+
+    private final class RelationshipDeletePopMenuAction implements ActionListener {
+
+        private String nodeId;
+
+        RelationshipDeletePopMenuAction(String nodeId) {
+            Objects.requireNonNull(nodeId);
+
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            deleteRelationshipByNodeId(nodeId);
+        }
+    }
+
     private final class EntityDeletePopMenuAction implements ActionListener {
 
         private String nodeId;
@@ -968,7 +1029,7 @@ public class MainWindow
 
         private String nodeId;
 
-        public OpenPanelMenuAction(String nodeId) {
+        OpenPanelMenuAction(String nodeId) {
             this.nodeId = nodeId;
         }
 
