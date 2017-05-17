@@ -29,6 +29,8 @@ import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLA
  */
 public class DefaultResourceClassConverter implements IResourceClassConverter {
 
+    private static final boolean RESOURCE_RELATIONSHIP_FIELD = false;
+
     @ConverterInject(ConverterInjectType.NAME)
     private INameConverter nameConverter;
 
@@ -68,7 +70,7 @@ public class DefaultResourceClassConverter implements IResourceClassConverter {
                 }
 
                 // 如果是关联关系创建的字段，而且这个关系对外暴露
-                if (relationship != null) {
+                if (relationship != null && RESOURCE_RELATIONSHIP_FIELD) {
                     boolean isEndAField = convertDataContext.isEndAField(entityClass, fieldInfo);
 
                     // 如果这个类对应这个关联关系的 A 端，而且 A 端的关系对外暴露

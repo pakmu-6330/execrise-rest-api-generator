@@ -88,6 +88,7 @@ public class ProjectGenerator {
         retValue.setPrimaryIdentifier(attributeModel.isPrimaryIdentifier());
         retValue.setDescription(attributeModel.getDescription());
         retValue.setAsSelectCondition(attributeModel.isAsSelectionCondition());
+        retValue.setExpose(attributeModel.isExpose());
 
         return retValue;
     }

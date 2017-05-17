@@ -13,6 +13,7 @@ public class AttributeModel implements Serializable {
     private String name;
     private String description;
     private String type;
+    private boolean expose;
     private boolean mandatory;
     private boolean primaryIdentifier;
     private boolean asSelectionCondition;
@@ -68,5 +69,13 @@ public class AttributeModel implements Serializable {
 
     public void setMandatory(boolean mandatory) {
         this.mandatory = mandatory;
+    }
+
+    public boolean isExpose() {
+        return expose;
+    }
+
+    public void setExpose(boolean expose) {
+        this.expose = expose;
     }
 }

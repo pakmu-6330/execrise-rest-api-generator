@@ -13,7 +13,7 @@ import java.util.UUID;
  */
 @XmlRootElement
 @XmlType(name = "attribute", propOrder = {
-        "id", "name", "description", "type", "primaryIdentifier", "asSelectionCondition"
+        "id", "name", "description", "type", "primaryIdentifier", "asSelectionCondition", "expose"
 })
 public class XMLAttribute {
 
@@ -23,9 +23,11 @@ public class XMLAttribute {
     private String type;
     private boolean primaryIdentifier;
     private boolean asSelectionCondition;
+    private boolean expose;
 
     public XMLAttribute() {
         this.id = UUID.randomUUID().toString();
+        this.expose = true;
     }
 
     @XmlElement
@@ -81,5 +83,14 @@ public class XMLAttribute {
     public XMLAttribute setAsSelectionCondition(boolean asSelectionCondition) {
         this.asSelectionCondition = asSelectionCondition;
         return this;
+    }
+
+    @XmlElement
+    public boolean isExpose() {
+        return expose;
+    }
+
+    public void setExpose(boolean expose) {
+        this.expose = expose;
     }
 }
