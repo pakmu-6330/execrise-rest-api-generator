@@ -28,7 +28,8 @@ import java.util.Set;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ASSEMBLER_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_CONTROLLER_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_CLASS;
+import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_IMPL_CLASS;
+import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_INTERFACE;
 
 /**
  * Controller 类转换默认实现类
@@ -112,7 +113,7 @@ public class DefaultControllerConverter implements IControllerConverter {
         controllerClass.addAnnotation(restControllerAnnotation).addAnnotation(requestMappingAnnotation);
 
         // 2. 控制器类中本实体的 Service 字段
-        ClassInfo serviceClass = this.convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_CLASS);
+        ClassInfo serviceClass = this.convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_INTERFACE);
         FieldInfo serviceField = new FieldInfo()
                 .setType(serviceClass.getType())
                 .setName(this.convertDataContext.getServiceDefaultFieldName(entityInfo.getName()))

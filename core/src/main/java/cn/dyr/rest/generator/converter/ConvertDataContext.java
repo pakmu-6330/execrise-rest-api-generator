@@ -43,9 +43,14 @@ public class ConvertDataContext implements ITypeContext {
     public static final String TYPE_DAO_INTERFACE = "dao";
 
     /**
+     * 表示 Service 接口的类型
+     */
+    public static final String TYPE_SERVICE_INTERFACE = "service";
+
+    /**
      * 表示 Service 类的类型
      */
-    public static final String TYPE_SERVICE_CLASS = "service";
+    public static final String TYPE_SERVICE_IMPL_CLASS = "service.impl";
 
     /**
      * 表示 Controller 类的类型

@@ -25,6 +25,7 @@ import cn.dyr.rest.generator.converter.type.ITypeConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.EntityRelationship;
 import cn.dyr.rest.generator.framework.common.CommonClassFactory;
+import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.boot.SpringBootAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.boot.SpringBootConstant;
@@ -46,6 +47,7 @@ import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.project.Project;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
+import cn.dyr.rest.generator.util.MethodInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +63,8 @@ import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_CONTROLLER
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_DAO_INTERFACE;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_CLASS;
+import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_IMPL_CLASS;
+import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_INTERFACE;
 
 /**
  * 一个转换操作的上下文对象
@@ -439,8 +442,11 @@ public class ConverterContext {
                         case ENTITY_PACKAGE_NAME:
                             field.set(converter, subPackage(converterConfig.getPoPackageName()));
                             break;
-                        case SERVICE_PACKAGE_NAME:
-                            field.set(converter, subPackage(converterConfig.getServicePackageName()));
+                        case SERVICE_INTERFACE_PACKAGE_NAME:
+                            field.set(converter, subPackage(converterConfig.getServiceInterfacePackageName()));
+                            break;
+                        case SERVICE_IMPL_PACKAGE_NAME:
+                            field.set(converter, subPackage(converterConfig.getServiceImplPackageName()));
                             break;
                         case DAO_PACKAGE_NAME:
                             field.set(converter, subPackage(converterConfig.getDaoPackageName()));
@@ -629,9 +635,30 @@ public class ConverterContext {
         for (EntityInfo entityInfo : this.entityInfoList) {
             ClassInfo serviceClass = this.serviceConverter.fromEntity(entityInfo);
 
+            // 根据 Service 类产生相应的接口
+            ClassInfo serviceInterface = new ClassInfo()
+                    .setClassName(this.nameConverter.serviceInterfaceNameFromEntityName(entityInfo.getName()))
+                    .setPackageName(subPackage(this.converterConfig.getServiceInterfacePackageName()))
+                    .setInterface(true);
+            serviceClass.implementInterface(serviceInterface.getType());
+
+            Iterator<MethodInfo> methodInfoIterator = serviceClass.iterateMethods();
+            TypeInfo overrideType = JDKAnnotationFactory.override().getType();
+
+            while (methodInfoIterator.hasNext()) {
+                MethodInfo methodInfo = methodInfoIterator.next();
+                if (MethodInfoUtils.isMethodContainsAnnotationType(methodInfo, overrideType)) {
+                    MethodInfo interfaceMethod = MethodInfoUtils.createMethodWithSameSignature(methodInfo);
+                    interfaceMethod.setDefineOnly(true);
+
+                    serviceInterface.addMethod(interfaceMethod);
+                }
+            }
+
             // 将 Service 类保存起来
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_CLASS, serviceClass);
-            this.convertDataContext.saveServiceDefaultFieldName(entityInfo.getName(), this.nameConverter.defaultNameOfVariableName(serviceClass.getClassName()));
+            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_INTERFACE, serviceInterface);
+            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_IMPL_CLASS, serviceClass);
+            this.convertDataContext.saveServiceDefaultFieldName(entityInfo.getName(), this.nameConverter.defaultNameOfVariableName(serviceInterface.getClassName()));
         }
     }
 
@@ -732,7 +759,8 @@ public class ConverterContext {
         if (converterConfig.isCrossOriginEnabled()) {
             MethodInfo crosConfigMethod = new MethodInfo()
                     .setName("addCorsMappings")
-                    .addParameter(ParameterFactory.create(SpringMVCTypeFactory.corsRegistry(), "registry"));
+                    .addParameter(ParameterFactory.create(SpringMVCTypeFactory.corsRegistry(), "registry"))
+                    .addAnnotationInfo(JDKAnnotationFactory.override());
 
             // 调用父类的相关方法进行配置
             IValueExpression registryValueExpression = ValueExpressionFactory.variable("registry");

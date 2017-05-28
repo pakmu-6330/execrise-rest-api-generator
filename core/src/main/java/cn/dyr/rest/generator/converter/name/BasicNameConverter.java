@@ -17,8 +17,13 @@ public abstract class BasicNameConverter implements INameConverter {
     }
 
     @Override
-    public String serviceNameFromEntityName(String entityName) {
-        return StringUtils.upperFirstLatter(entityName + "Service");
+    public String serviceInterfaceNameFromEntityName(String entityName) {
+        return "I" + StringUtils.upperFirstLatter(entityName + "Service");
+    }
+
+    @Override
+    public String serviceImplNameFromEntityName(String entityName) {
+        return serviceInterfaceNameFromEntityName(entityName).substring(1);
     }
 
     @Override

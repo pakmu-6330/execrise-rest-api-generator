@@ -29,9 +29,13 @@ public enum DataInjectType {
      */
     ENTITY_PACKAGE_NAME,
     /**
-     * 存放 Service 类包的包名
+     * 存放 Service 接口包的包名
      */
-    SERVICE_PACKAGE_NAME,
+    SERVICE_INTERFACE_PACKAGE_NAME,
+    /**
+     * 存放 Service 实现类的包名
+     */
+    SERVICE_IMPL_PACKAGE_NAME,
     /**
      * 存放 DAO 类包的包名
      */

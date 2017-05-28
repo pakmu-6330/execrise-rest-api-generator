@@ -9,6 +9,7 @@ import cn.dyr.rest.generator.converter.instruction.IServiceInstructionConverter;
 import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.RelationshipType;
+import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
@@ -53,7 +54,7 @@ public class DefaultServiceConverter implements IServiceConverter {
     @ConverterInject(ConverterInjectType.SERVICE_INSTRUCTION)
     private IServiceInstructionConverter instructionConverter;
 
-    @DataInject(DataInjectType.SERVICE_PACKAGE_NAME)
+    @DataInject(DataInjectType.SERVICE_IMPL_PACKAGE_NAME)
     private String servicePackageName;
 
     /**
@@ -488,9 +489,9 @@ public class DefaultServiceConverter implements IServiceConverter {
         MethodInfo idSetterMethod = entityClass.setterMethod(entityIdField.getName());
 
         // Service 类的基本信息
-        String serviceName = this.nameConverter.serviceNameFromEntityName(entityInfo.getName());
+        String serviceImplName = this.nameConverter.serviceImplNameFromEntityName(entityInfo.getName());
         ClassInfo serviceClass = new ClassInfo()
-                .setClassName(serviceName)
+                .setClassName(serviceImplName)
                 .setPackageName(servicePackageName)
                 .addAnnotation(SpringFrameworkAnnotationFactory.service());
 
@@ -538,10 +539,12 @@ public class DefaultServiceConverter implements IServiceConverter {
 
         // Service 类的分页查询方法
         MethodInfo pagedGetMethod = this.pagedGetMethod(entityInfo);
+        pagedGetMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(pagedGetMethod);
 
         // Service 类的查询一项方法
         MethodInfo idGetMethod = this.idGetMethod(entityInfo);
+        idGetMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(idGetMethod);
 
         // Service 类级联保存方法
@@ -550,18 +553,21 @@ public class DefaultServiceConverter implements IServiceConverter {
 
         // Service 类的增加方法
         MethodInfo createMethod = this.getCreateMethod(entityInfo);
+        createMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(createMethod);
 
         // Service 类的级联删除方法
         MethodInfo cascadeDeleteMethod = this.getCascadeDeleteMethod(entityInfo);
         serviceClass.addMethod(cascadeDeleteMethod);
 
-        // Service 类的删除方法，使用一个花括号以控制变量的作用域
+        // Service 类的删除方法
         MethodInfo deleteMethod = this.getDeleteMethod(entityInfo);
+        deleteMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(deleteMethod);
 
         // Service 类的修改方法，使用一个花括号以控制变量的作用域
         MethodInfo updateMethod = this.getUpdateMethod(entityInfo);
+        updateMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(updateMethod);
 
         return serviceClass;

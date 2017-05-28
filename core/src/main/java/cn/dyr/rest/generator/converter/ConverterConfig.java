@@ -44,7 +44,8 @@ public class ConverterConfig {
 
     private String poPackageName;
     private String daoPackageName;
-    private String servicePackageName;
+    private String serviceInterfacePackageName;
+    private String serviceImplPackageName;
     private String controllerPackageName;
     private String resourceClassPackageName;
     private String resourceAssemblerPackageName;
@@ -78,7 +79,8 @@ public class ConverterConfig {
 
         this.poPackageName = "po";
         this.daoPackageName = "dao";
-        this.servicePackageName = "package";
+        this.serviceInterfacePackageName = "service";
+        this.serviceImplPackageName = "service.impl";
         this.controllerPackageName = "controller";
         this.resourceClassPackageName = "hateoas.resource";
         this.resourceAssemblerPackageName = "hateoas.assembler";
@@ -355,22 +357,42 @@ public class ConverterConfig {
     }
 
     /**
-     * 获得 Service 类所在包的包名
+     * 获得 Service 接口所在包的包名
      *
-     * @return Service 类所在包的包名
+     * @return Service 接口所在包的包名
      */
-    public String getServicePackageName() {
-        return servicePackageName;
+    public String getServiceInterfacePackageName() {
+        return serviceInterfacePackageName;
     }
 
     /**
-     * 设置 Service 类所在包的包名
+     * 设置 Service 接口所在包的包名
      *
-     * @param servicePackageName Service 类所在包的包名
+     * @param serviceInterfacePackageName Service 接口所在包的包名
      * @return 配置对象本身
      */
-    public ConverterConfig setServicePackageName(String servicePackageName) {
-        this.servicePackageName = servicePackageName;
+    public ConverterConfig setServiceInterfacePackageName(String serviceInterfacePackageName) {
+        this.serviceInterfacePackageName = serviceInterfacePackageName;
+        return this;
+    }
+
+    /**
+     * 获得 Service 实现类的包名
+     *
+     * @return Service 实现类的包名
+     */
+    public String getServiceImplPackageName() {
+        return serviceImplPackageName;
+    }
+
+    /**
+     * 设置 Service 实现类的包名
+     *
+     * @param serviceImplPackageName Service 实现类的包名
+     * @return 配置信息本身
+     */
+    public ConverterConfig setServiceImplPackageName(String serviceImplPackageName) {
+        this.serviceImplPackageName = serviceImplPackageName;
         return this;
     }
 
@@ -719,7 +741,10 @@ public class ConverterConfig {
                             retValue.setDaoPackageName(packageName);
                             break;
                         case "service-package":
-                            retValue.setServicePackageName(packageName);
+                            retValue.setServiceInterfacePackageName(packageName);
+                            break;
+                        case "service-impl-package":
+                            retValue.setServiceImplPackageName(packageName);
                             break;
                         case "controller-package":
                             retValue.setControllerPackageName(packageName);

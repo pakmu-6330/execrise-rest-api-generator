@@ -22,7 +22,8 @@
     <packages>
         <po-package>po</po-package>
         <dao-package>dao</dao-package>
-        <service-package>service</service-package>
+        <service-interface-package>service</service-interface-package>
+        <service-impl-package>service.impl</service-impl-package>
         <controller-package>controller</controller-package>
         <resource-class-package>hateoas.resource</resource-class-package>
         <resource-assembler-package>hateoas.assembler</resource-assembler-package>

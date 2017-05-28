@@ -183,4 +183,16 @@ public class ModifierInfo {
     public boolean isInterface() {
         return ((modifier & INTERFACE) == INTERFACE);
     }
+
+    /**
+     * 得到这个修饰符对象的深拷贝副本
+     *
+     * @return 这个修饰符对象的深拷贝副本
+     */
+    public ModifierInfo copy() {
+        ModifierInfo retValue = new ModifierInfo();
+        retValue.modifier = this.modifier;
+
+        return retValue;
+    }
 }

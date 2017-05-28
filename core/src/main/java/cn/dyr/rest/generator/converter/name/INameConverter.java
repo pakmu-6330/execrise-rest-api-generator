@@ -29,12 +29,20 @@ public interface INameConverter extends IConverter {
     String controllerNameFromEntityName(String entityName);
 
     /**
-     * 将实体名称转换成 Service 类的名称
+     * 将实体名称转换成 Service 接口的名称
      *
      * @param entityName 实体名称
-     * @return 对应 Service 类的名称
+     * @return 对应 Service 实现类的名称
      */
-    String serviceNameFromEntityName(String entityName);
+    String serviceInterfaceNameFromEntityName(String entityName);
+
+    /**
+     * 将实体名称转换成 Service 实现类的名称
+     *
+     * @param entityName 实体名称
+     * @return 对应 Service 接口类的名称
+     */
+    String serviceImplNameFromEntityName(String entityName);
 
     /**
      * 将实体名转换成 DAO 接口的名称
