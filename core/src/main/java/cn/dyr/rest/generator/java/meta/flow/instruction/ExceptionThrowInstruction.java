@@ -55,6 +55,11 @@ public class ExceptionThrowInstruction implements IInstruction {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        throw new IllegalStateException("method invocation is not allowed on throw instruction");
+    }
+
+    @Override
     public IValueExpression toValueExpression() {
         throw new IllegalStateException("throw instruction cannot be converted into value expression");
     }

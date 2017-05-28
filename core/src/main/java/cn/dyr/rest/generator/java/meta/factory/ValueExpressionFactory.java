@@ -320,10 +320,19 @@ public class ValueExpressionFactory {
     /**
      * 返回当前类的引用
      *
-     * @return 表示 this 引用的值表达式/
+     * @return 表示 this 引用的值表达式
      */
     public static IValueExpression thisReference() {
         return variable("this");
+    }
+
+    /**
+     * 返回一个用于执行父类方法的表达式
+     *
+     * @return 用于执行父类方法的表达式
+     */
+    public static IValueExpression parent() {
+        return variable("super");
     }
 
     /**

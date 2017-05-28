@@ -73,6 +73,15 @@ public interface IInstruction extends IImportProcessor {
     IInstruction invoke(String methodName, Object[] parameters);
 
     /**
+     * 通过在这个指令的基础上调用方法产生一条新的指令
+     *
+     * @param methodName 方法名
+     * @param parameter  参数
+     * @return 调用指定方法后产生的新的指令
+     */
+    IInstruction invoke(String methodName, Object parameter);
+
+    /**
      * 对部分可以转换成表达式的指令提供转换功能
      *
      * @return 这个指令转换成值表达式以后对应的对象

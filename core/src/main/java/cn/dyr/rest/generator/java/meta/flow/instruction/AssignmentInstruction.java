@@ -78,6 +78,11 @@ public class AssignmentInstruction implements IInstruction {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        throw new IllegalStateException("method invocation is not allowed in assignment instruction");
+    }
+
+    @Override
     public IValueExpression toValueExpression() {
         throw new IllegalStateException("assignment instruction cannot be converted to value expression");
     }

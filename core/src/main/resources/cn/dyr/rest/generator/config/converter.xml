@@ -36,5 +36,6 @@
         <table-prefix>t_</table-prefix>
         <uri-prefix>/v1</uri-prefix>
         <default-page-size>5</default-page-size>
+        <cors-enabled>true</cors-enabled>
     </parameters>
 </converter-config>

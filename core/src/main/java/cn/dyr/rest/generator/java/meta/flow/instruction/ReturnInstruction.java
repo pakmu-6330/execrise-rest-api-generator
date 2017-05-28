@@ -44,6 +44,11 @@ public class ReturnInstruction implements IInstruction {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        throw new IllegalStateException("method invocation is not allowed in return instruction");
+    }
+
+    @Override
     public IValueExpression toValueExpression() {
         throw new IllegalStateException("return instruction cannot be converted to value expression");
     }

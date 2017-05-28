@@ -162,4 +162,14 @@ public class SpringMVCConstant {
      * 表示 HTTP 404 的枚举成员 NOT_FOUND
      */
     public static final String HTTP_STATUS_MEMBER_NOT_FOUND = "NOT_FOUND";
+
+    /**
+     * 表示跨域注册处理 CorsRegistry 类的类全名
+     */
+    public static final String CORS_REGISTRY_CLASS = "org.springframework.web.servlet.config.annotation.CorsRegistry";
+
+    /**
+     * 表示 WebMvcConfigurerAdapter 类的类全名
+     */
+    public static final String WEB_MVC_CONFIGURER_ADAPTER = "org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter";
 }

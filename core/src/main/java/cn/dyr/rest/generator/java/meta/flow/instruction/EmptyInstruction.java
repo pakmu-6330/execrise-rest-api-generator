@@ -33,6 +33,11 @@ public class EmptyInstruction implements IInstruction {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        throw new IllegalStateException("method invocation is not allowed in empty instruction");
+    }
+
+    @Override
     public IValueExpression toValueExpression() {
         throw new IllegalStateException("empty instruction cannot be converted to value expression");
     }

@@ -20,6 +20,11 @@ public abstract class AbstractFlow implements IFlow {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        throw new IllegalStateException("method invocation is not allowed in flow instruction");
+    }
+
+    @Override
     public IInstruction invoke(String methodName, ParameterValue[] parameters) {
         throw new IllegalStateException("method invocation is not allowed in flow instruction");
     }

@@ -58,6 +58,7 @@ public class ConverterConfig {
 
     private boolean builderStyleSetter;
     private boolean pagingEnabled;
+    private boolean crossOriginEnabled;
 
     /**
      * 创建一个携带有默认配置的配置
@@ -89,6 +90,7 @@ public class ConverterConfig {
         this.defaultPageSize = 5;
 
         this.builderStyleSetter = false;
+        this.crossOriginEnabled = true;
         this.pagingEnabled = true;
     }
 
@@ -569,6 +571,26 @@ public class ConverterConfig {
     }
 
     /**
+     * 当前的配置是否支持跨域访问
+     *
+     * @return 一个表示是否只是跨域访问的布尔值
+     */
+    public boolean isCrossOriginEnabled() {
+        return crossOriginEnabled;
+    }
+
+    /**
+     * 设置是否支持跨域访问
+     *
+     * @param crossOriginEnabled 一个是否支持跨域访问的布尔值
+     * @return 这个配置本身
+     */
+    public ConverterConfig setCrossOriginEnabled(boolean crossOriginEnabled) {
+        this.crossOriginEnabled = crossOriginEnabled;
+        return this;
+    }
+
+    /**
      * 获得一个默认的配置
      *
      * @return 默认的配置
@@ -743,6 +765,9 @@ public class ConverterConfig {
                                 break;
                             case "default-page-size":
                                 retValue.setDefaultPageSize(intFromString(text));
+                                break;
+                            case "cors-enabled":
+                                retValue.setCrossOriginEnabled(booleanFromString(text));
                                 break;
                         }
                     }

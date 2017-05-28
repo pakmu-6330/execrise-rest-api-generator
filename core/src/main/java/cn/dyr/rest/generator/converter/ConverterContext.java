@@ -30,9 +30,8 @@ import cn.dyr.rest.generator.framework.spring.boot.SpringBootAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.boot.SpringBootConstant;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
-import cn.dyr.rest.generator.framework.spring.hateoas.SpringHATEOASTypeFactory;
+import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCTypeFactory;
 import cn.dyr.rest.generator.framework.swagger.SwaggerAnnotationFactory;
-import cn.dyr.rest.generator.framework.swagger.SwaggerTypeConstant;
 import cn.dyr.rest.generator.framework.swagger.SwaggerTypeFactory;
 import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
@@ -40,6 +39,7 @@ import cn.dyr.rest.generator.java.meta.MethodInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
 import cn.dyr.rest.generator.java.meta.factory.MethodInfoFactory;
+import cn.dyr.rest.generator.java.meta.factory.ParameterFactory;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
@@ -54,6 +54,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ASSEMBLER_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_CONTROLLER_CLASS;
@@ -204,6 +205,28 @@ public class ConverterContext {
         }
 
         return retValue;
+    }
+
+    /**
+     * 获得转换器的配置信息
+     *
+     * @return 转换器的配置信息
+     */
+    public ConverterConfig getConverterConfig() {
+        return converterConfig;
+    }
+
+    /**
+     * 设置转换器的配置信息
+     *
+     * @param converterConfig 要设置到转换器中的配置信息
+     * @return 转换器本身
+     */
+    public ConverterContext setConverterConfig(ConverterConfig converterConfig) {
+        Objects.requireNonNull(converterConfig);
+
+        this.converterConfig = converterConfig;
+        return this;
     }
 
     /**
@@ -682,6 +705,10 @@ public class ConverterContext {
                 .setPackageName(getRootPackageName())
                 .setClassName("MainApplication");
 
+        if (this.converterConfig.isCrossOriginEnabled()) {
+            mainClass.extendClass(SpringMVCTypeFactory.webMvcConfigurerAdapter());
+        }
+
         // 2. 创建相应的注解
         AnnotationInfo appAnnotation = SpringBootAnnotationFactory.appAnnotation();
         mainClass.addAnnotation(appAnnotation);
@@ -701,7 +728,35 @@ public class ConverterContext {
                 });
         mainMethod.setRootInstruction(mainInstruction);
 
-        // 5. 将类保存到包当中
+        // 5. 判断是否支持跨域进行相关的配置
+        if (converterConfig.isCrossOriginEnabled()) {
+            MethodInfo crosConfigMethod = new MethodInfo()
+                    .setName("addCorsMappings")
+                    .addParameter(ParameterFactory.create(SpringMVCTypeFactory.corsRegistry(), "registry"));
+
+            // 调用父类的相关方法进行配置
+            IValueExpression registryValueExpression = ValueExpressionFactory.variable("registry");
+            IInstruction parentAddCrosMappingsInstruction = InstructionFactory.invoke(
+                    ValueExpressionFactory.parent(), "addCorsMappings", new Object[]{registryValueExpression});
+
+            // 进行跨域的相应配置
+            IInstruction configInstruction = InstructionFactory.invoke(registryValueExpression, "addMapping", "/**")
+                    .invoke("allowedOrigins", "*")
+                    .invoke("allowedHeaders", "*")
+                    .invoke("allowCredentials", true)
+                    .invoke("allowedMethods", "*")
+                    .invoke("maxAge", 3600);
+
+            crosConfigMethod.setRootInstruction(InstructionFactory.sequence(
+                    parentAddCrosMappingsInstruction,
+                    InstructionFactory.emptyInstruction(),
+                    configInstruction
+            ));
+
+            mainClass.addMethod(crosConfigMethod);
+        }
+
+        // 6. 将类保存到包当中
         this.convertDataContext.saveClassByPackageName(mainClass);
     }
 

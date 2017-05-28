@@ -57,4 +57,21 @@ public class SpringMVCTypeFactory {
         return TypeInfoFactory.fromClass(SpringMVCConstant.HTTP_STATUS_ENUM_CLASS);
     }
 
+    /**
+     * 创建一个 CorsRegistry 类的类型信息
+     *
+     * @return CorsRegistry 类型信息
+     */
+    public static TypeInfo corsRegistry() {
+        return TypeInfoFactory.fromClass(SpringMVCConstant.CORS_REGISTRY_CLASS);
+    }
+
+    /**
+     * 创建一个 WebMvcConfigurerAdapter 类的类型信息
+     *
+     * @return WebMvcConfigurerAdapter 类型信息
+     */
+    public static TypeInfo webMvcConfigurerAdapter() {
+        return TypeInfoFactory.fromClass(SpringMVCConstant.WEB_MVC_CONFIGURER_ADAPTER);
+    }
 }

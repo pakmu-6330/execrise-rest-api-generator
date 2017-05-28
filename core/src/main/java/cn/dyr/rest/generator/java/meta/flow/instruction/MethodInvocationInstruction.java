@@ -75,6 +75,11 @@ public class MethodInvocationInstruction implements IInstruction {
     }
 
     @Override
+    public IInstruction invoke(String methodName, Object parameter) {
+        return invoke(methodName, new Object[]{parameter});
+    }
+
+    @Override
     public IValueExpression toValueExpression() {
         // 计算表达式返回
         return this.value.invokeMethod(this.methodName, this.parameterValues);

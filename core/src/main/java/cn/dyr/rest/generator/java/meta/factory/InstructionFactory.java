@@ -125,6 +125,24 @@ public class InstructionFactory {
     }
 
     /**
+     * 创建一个方法调用的指令
+     *
+     * @param originValue 从哪个变量或者值调用方法
+     * @param methodName  要调用的方法的名称
+     * @param parameter   调用方法时往方法传入的实参
+     * @return 表示方法调用的指令
+     */
+    public static IInstruction invoke(
+            IValueExpression originValue,
+            String methodName, Object parameter
+    ) {
+        return new MethodInvocationInstruction()
+                .setValue(originValue)
+                .setMethodName(methodName)
+                .setParameterValues(ParameterValueFactory.fromObjects(new Object[]{parameter}));
+    }
+
+    /**
      * 创建一个静态调用的指令
      *
      * @param classType    类
