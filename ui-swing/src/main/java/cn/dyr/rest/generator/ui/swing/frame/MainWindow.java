@@ -176,6 +176,7 @@ public class MainWindow
         // 工具栏创建工程按钮
         this.btnNewProject = new JButton("创建工程");
         this.btnNewProject.setActionCommand(Commands.CMD_NEW_PROJECT);
+        this.btnNewProject.addActionListener(this);
         this.mainToolBar.add(this.btnNewProject);
 
         // 工具栏打开项目按钮
@@ -430,7 +431,7 @@ public class MainWindow
                 this.tabbedPane.addTab("新关系：" + infoPanel.getRelationshipName(), infoPanel);
                 this.tabbedPane.setSelectedComponent(infoPanel);
                 break;
-            case Commands.CMD_SAVE_PROJECT:
+            case Commands.CMD_SAVE_PROJECT: {
                 int result = this.prjFileChooser.showSaveDialog(this);
                 if (result == JFileChooser.APPROVE_OPTION) {
                     try {
@@ -454,9 +455,10 @@ public class MainWindow
                                 "REST API Generator", JOptionPane.ERROR_MESSAGE);
                     }
                 }
-                break;
-            case Commands.CMD_OPEN_PROJECT:
-                result = this.prjFileChooser.showOpenDialog(this);
+            }
+            break;
+            case Commands.CMD_OPEN_PROJECT: {
+                int result = this.prjFileChooser.showOpenDialog(this);
                 if (result == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = this.prjFileChooser.getSelectedFile();
                     if (selectedFile.isDirectory() || !selectedFile.exists()) {
@@ -517,9 +519,49 @@ public class MainWindow
                                 "REST API Generator", JOptionPane.ERROR_MESSAGE);
                     }
                 }
-
-                break;
+            }
+            break;
+            case Commands.CMD_NEW_PROJECT: {
+                int result = JOptionPane.showConfirmDialog(this,
+                        "您确定要创建一个新的工程吗？" + System.lineSeparator() + "注意：未保存的数据会丢失",
+                        SwingUIApplication.APP_NAME, JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    createNewProject();
+                }
+            }
+            break;
         }
+    }
+
+    private void createNewProject() {
+        ProjectContext currentProjectContext = application.getCurrentProjectContext();
+        List<ProjectContextEventListener> listeners = currentProjectContext.getListeners();
+
+        ProjectModel project = application.createProject();
+        currentProjectContext = application.getCurrentProjectContext();
+        currentProjectContext.setListeners(listeners);
+
+        Collection<JPanel> openedPanel = this.panelIdMap.values();
+
+        // 清空数据
+        nodeToPanelId = new HashMap<>();
+        nodeToModelId = new HashMap<>();
+        panelIdMap = new HashMap<>();
+        modelIdMap = new HashMap<>();
+
+        // 关闭旧项目当中所有已经打开的面板
+        EventQueue.invokeLater(() -> {
+            for (JPanel panel : openedPanel) {
+                if (panel instanceof DataPanel) {
+                    ((DataPanel) panel).setDirty(false);
+                }
+
+                int index = tabbedPane.indexOfComponent(panel);
+                if (index != -1) {
+                    tabbedPane.removeTabAt(index);
+                }
+            }
+        });
     }
 
     /**

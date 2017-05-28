@@ -24,9 +24,11 @@ import java.util.List;
 public class MethodStatement implements IStatement {
 
     private MethodInfo methodInfo;
+    private boolean ignoreModifier;
 
     public MethodStatement(MethodInfo methodInfo) {
         this.methodInfo = methodInfo;
+        this.ignoreModifier = false;
     }
 
     public MethodInfo getMethodInfo() {
@@ -35,6 +37,15 @@ public class MethodStatement implements IStatement {
 
     public MethodStatement setMethodInfo(MethodInfo methodInfo) {
         this.methodInfo = methodInfo;
+        return this;
+    }
+
+    public boolean isIgnoreModifier() {
+        return ignoreModifier;
+    }
+
+    public MethodStatement setIgnoreModifier(boolean ignoreModifier) {
+        this.ignoreModifier = ignoreModifier;
         return this;
     }
 
@@ -55,8 +66,11 @@ public class MethodStatement implements IStatement {
         }
 
         // 生成方法修饰符
-        ModifierInfoToken modifierInfoToken = new ModifierInfoToken(this.methodInfo.getModifier());
-        String modifierString = modifierInfoToken.generateMethodModifierString();
+        String modifierString = "";
+        if (!this.ignoreModifier) {
+            ModifierInfoToken modifierInfoToken = new ModifierInfoToken(this.methodInfo.getModifier());
+            modifierString = modifierInfoToken.generateMethodModifierString();
+        }
 
         // 生成返回值的标识
         TypeInfoToken typeInfoToken = new TypeInfoToken(this.methodInfo.getReturnValueType());
@@ -76,7 +90,10 @@ public class MethodStatement implements IStatement {
 
         builder.append(indentManager.getIndentString());
         builder.append(modifierString);
-        builder.append(" ");
+        if (modifierString != null && !modifierString.trim().equals("")) {
+            builder.append(" ");
+        }
+
         builder.append(returnTypeString);
 
         if (methodInfo.getMethodType() == MethodInfo.METHOD_TYPE_COMMON) {

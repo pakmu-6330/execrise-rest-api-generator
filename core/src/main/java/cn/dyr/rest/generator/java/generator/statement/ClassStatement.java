@@ -80,6 +80,10 @@ public class ClassStatement implements IStatement {
             MethodInfo methodInfo = methodInfoIterator.next();
             MethodStatement statement = new MethodStatement(methodInfo);
 
+            if (this.classInfo.getModifier().isInterface()) {
+                statement.setIgnoreModifier(true);
+            }
+
             this.methodStatements.add(statement);
         }
     }
