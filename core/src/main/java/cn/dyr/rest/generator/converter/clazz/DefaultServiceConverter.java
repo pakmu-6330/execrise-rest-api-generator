@@ -1,6 +1,7 @@
 package cn.dyr.rest.generator.converter.clazz;
 
 import cn.dyr.rest.generator.converter.ConvertDataContext;
+import cn.dyr.rest.generator.converter.ConverterConfig;
 import cn.dyr.rest.generator.converter.ConverterInject;
 import cn.dyr.rest.generator.converter.ConverterInjectType;
 import cn.dyr.rest.generator.converter.DataInject;
@@ -9,6 +10,7 @@ import cn.dyr.rest.generator.converter.instruction.IServiceInstructionConverter;
 import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.RelationshipType;
+import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
@@ -22,9 +24,11 @@ import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
+import cn.dyr.rest.generator.java.meta.parameters.Parameter;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -56,6 +60,9 @@ public class DefaultServiceConverter implements IServiceConverter {
 
     @DataInject(DataInjectType.SERVICE_IMPL_PACKAGE_NAME)
     private String servicePackageName;
+
+    @DataInject(DataInjectType.CONFIG)
+    private ConverterConfig converterConfig;
 
     /**
      * 创建分页查询的方法
@@ -480,6 +487,72 @@ public class DefaultServiceConverter implements IServiceConverter {
         return methodInfo;
     }
 
+    /**
+     * 用于创建 Service 类中关联关系的查询方法
+     *
+     * @param classInfo  类信息
+     * @param entityInfo 实体信息
+     */
+    private void handleRelatedEntityQueryMethod(ClassInfo classInfo, EntityInfo entityInfo) {
+        // 寻找自身维护的关联关系
+        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
+        if (handlers != null) {
+            for (ConvertDataContext.RelationshipHandler handler : handlers) {
+                // 如果只是单向关系，则忽略
+                if (handler.getHandledFieldName() == null ||
+                        handler.getHandledFieldName().trim().length() == 0) {
+                    continue;
+                }
+
+                // 寻找对方的实体名称、ID以及关系字段名
+                String handledEntityName = handler.getToBeHandled();
+                String handlerFieldName = handler.getHandlerFieldName();
+
+                ClassInfo handledEntityClass = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+                FieldInfo handledEntityId = ClassInfoUtils.findSingleId(handledEntityClass);
+
+                // 方法的返回值
+                TypeInfo returnType = null;
+                if (handler.getType() == RelationshipType.MANY_TO_MANY ||
+                        handler.getType() == RelationshipType.MANY_TO_ONE) {
+                    if (converterConfig.isPagingEnabled()) {
+                        returnType = SpringDataTypeFactory.pageTypeWithGeneric(classInfo.getType());
+                    } else {
+                        returnType = CollectionsTypeFactory.listWithGeneric(classInfo.getType());
+                    }
+                } else {
+                    returnType = classInfo.getType();
+                }
+
+                // 方法的名称
+                String methodName = String.format("findBy%s%s",
+                        StringUtils.upperFirstLatter(handlerFieldName),
+                        StringUtils.upperFirstLatter(handledEntityId.getName()));
+                String handledEntityIdVariable = String.format("%s%s",
+                        handlerFieldName, StringUtils.upperFirstLatter(handledEntityId.getName()));
+
+                // 构建相关方法
+                MethodInfo methodInfo = new MethodInfo();
+                methodInfo.setReturnValueType(returnType);
+                methodInfo.setName(methodName);
+
+                // 创建对方 id 参数
+                Parameter idParameter = ParameterFactory.create(handledEntityId.getType(), handledEntityIdVariable);
+                methodInfo.addParameter(idParameter);
+
+                // 如果启用了分页，那么添加分页数据参数
+                if (converterConfig.isPagingEnabled()) {
+                    Parameter pageable = ParameterFactory.create(PAGEABLE_TYPE, "pageable");
+                    methodInfo.addParameter(pageable);
+                }
+
+                classInfo.addMethod(methodInfo);
+            }
+        }
+
+        // 寻找维护关联关系的对方
+    }
+
     @Override
     public ClassInfo fromEntity(EntityInfo entityInfo) {
         ClassInfo entityClass = this.convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
@@ -569,6 +642,9 @@ public class DefaultServiceConverter implements IServiceConverter {
         MethodInfo updateMethod = this.getUpdateMethod(entityInfo);
         updateMethod.addAnnotationInfo(JDKAnnotationFactory.override());
         serviceClass.addMethod(updateMethod);
+
+        // Service 关联的查询
+        handleRelatedEntityQueryMethod(serviceClass, entityInfo);
 
         return serviceClass;
     }

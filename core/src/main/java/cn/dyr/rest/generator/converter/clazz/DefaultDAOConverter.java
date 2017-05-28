@@ -160,7 +160,7 @@ public class DefaultDAOConverter implements IDAOConverter {
             // 生成方法的名称
             FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
 
-            String methodName = String.format("findBy%s_%s",
+            String methodName = String.format("findBy%s%s",
                     StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()),
                     StringUtils.upperFirstLatter(handledIdField.getName()));
             methodInfo.setName(methodName);
