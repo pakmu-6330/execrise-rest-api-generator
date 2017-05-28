@@ -52,5 +52,9 @@ public enum ConverterInjectType {
      * 用于控制器的
      */
     CONTROLLER_METHOD,
+    /**
+     * 用于控制整体逻辑的转换器
+     */
+    CONVERT_SCHEMA,
 
 }

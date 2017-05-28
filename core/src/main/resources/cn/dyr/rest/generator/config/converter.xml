@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <converter-config>
     <converters>
-        <name-converter>cn.dyr.rest.generator.converter.name.KeywordFilterConverter</name-converter>
-        <type-converter>cn.dyr.rest.generator.converter.type.DefaultTypeConverter</type-converter>
-        <field-converter>cn.dyr.rest.generator.converter.field.DefaultFieldConverter</field-converter>
-
-        <entity-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultEntityClassConverter</entity-class-converter>
-
-        <dao-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultDAOConverter</dao-class-converter>
-
-        <service-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultServiceConverter</service-class-converter>
-        <service-instruction-converter>cn.dyr.rest.generator.converter.instruction.DefaultServiceInstructionConverter</service-instruction-converter>
-
-        <controller-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultControllerConverter</controller-class-converter>
-        <controller-method-converter>cn.dyr.rest.generator.converter.method.DefaultControllerMethodConverter</controller-method-converter>
-
-        <hateoas-resource-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultResourceClassConverter</hateoas-resource-class-converter>
-        <hateoas-assembler-class-converter>cn.dyr.rest.generator.converter.clazz.DefaultResourceAssemblerConverter</hateoas-assembler-class-converter>
+        <convert-schema-class>cn.dyr.rest.generator.converter.schema.SSHConvertSchemaImpl</convert-schema-class>
     </converters>
 
     <packages>

@@ -42,6 +42,8 @@ public class ConverterConfig {
     private String hateoasResourceConverterClass;
     private String hateoasResourceAssemblerConverterClass;
 
+    private String convertSchemaClass;
+
     private String poPackageName;
     private String daoPackageName;
     private String serviceInterfacePackageName;
@@ -76,6 +78,7 @@ public class ConverterConfig {
         this.serviceConverterClass = "cn.dyr.rest.generator.converter.clazz.DefaultServiceConverter";
         this.entityConverterClass = "cn.dyr.rest.generator.converter.clazz.DefaultEntityClassConverter";
         this.hateoasResourceConverterClass = "cn.dyr.rest.generator.converter.clazz.DefaultResourceClassConverter";
+        this.convertSchemaClass = "cn.dyr.rest.generator.converter.schema.SSHConvertSchemaImpl";
 
         this.poPackageName = "po";
         this.daoPackageName = "dao";
@@ -313,6 +316,26 @@ public class ConverterConfig {
      */
     public ConverterConfig setHateoasResourceConverterClass(String hateoasResourceConverterClass) {
         this.hateoasResourceConverterClass = hateoasResourceConverterClass;
+        return this;
+    }
+
+    /**
+     * 获得转换方案类全名
+     *
+     * @return 转换方案的类全名
+     */
+    public String getConvertSchemaClass() {
+        return convertSchemaClass;
+    }
+
+    /**
+     * 设置转换方案的类全名
+     *
+     * @param convertSchemaClass 转换方案的类全名
+     * @return 配置信息本身
+     */
+    public ConverterConfig setConvertSchemaClass(String convertSchemaClass) {
+        this.convertSchemaClass = convertSchemaClass;
         return this;
     }
 
@@ -719,6 +742,9 @@ public class ConverterConfig {
                             break;
                         case "hateoas-resource-class-converter":
                             retValue.setHateoasResourceConverterClass(converterClassName);
+                            break;
+                        case "convert-schema-class":
+                            retValue.setConvertSchemaClass(converterClassName);
                             break;
                     }
                 }

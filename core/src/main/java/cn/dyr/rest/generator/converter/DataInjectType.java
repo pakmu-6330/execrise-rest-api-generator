@@ -59,6 +59,14 @@ public enum DataInjectType {
     /**
      * 存放异常类包的包名
      */
-    EXCEPTION_PACKAGE_NAME
+    EXCEPTION_PACKAGE_NAME,
+    /**
+     * 项目基包的包名
+     */
+    BASE_PACKAGE_NAME,
+    /**
+     * 项目信息
+     */
+    PROJECT
 
 }

@@ -20,34 +20,15 @@ import cn.dyr.rest.generator.converter.method.DefaultControllerMethodConverter;
 import cn.dyr.rest.generator.converter.method.IControllerMethodConverter;
 import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.converter.name.KeywordFilterConverter;
+import cn.dyr.rest.generator.converter.schema.IConvertSchema;
+import cn.dyr.rest.generator.converter.schema.SSHConvertSchemaImpl;
+import cn.dyr.rest.generator.converter.schema.SchemaConverterList;
 import cn.dyr.rest.generator.converter.type.DefaultTypeConverter;
 import cn.dyr.rest.generator.converter.type.ITypeConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.EntityRelationship;
-import cn.dyr.rest.generator.framework.common.CommonClassFactory;
-import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
-import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
-import cn.dyr.rest.generator.framework.spring.boot.SpringBootAnnotationFactory;
-import cn.dyr.rest.generator.framework.spring.boot.SpringBootConstant;
-import cn.dyr.rest.generator.framework.spring.data.SpringDataAnnotationFactory;
-import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
-import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCTypeFactory;
-import cn.dyr.rest.generator.framework.swagger.SwaggerAnnotationFactory;
-import cn.dyr.rest.generator.framework.swagger.SwaggerTypeFactory;
-import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
-import cn.dyr.rest.generator.java.meta.MethodInfo;
-import cn.dyr.rest.generator.java.meta.TypeInfo;
-import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
-import cn.dyr.rest.generator.java.meta.factory.MethodInfoFactory;
-import cn.dyr.rest.generator.java.meta.factory.ParameterFactory;
-import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
-import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
-import cn.dyr.rest.generator.java.meta.flow.IInstruction;
-import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.project.Project;
-import cn.dyr.rest.generator.util.ClassInfoUtils;
-import cn.dyr.rest.generator.util.MethodInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,14 +38,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ASSEMBLER_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_CONTROLLER_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_DAO_INTERFACE;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_IMPL_CLASS;
-import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_INTERFACE;
 
 /**
  * 一个转换操作的上下文对象
@@ -107,6 +80,8 @@ public class ConverterContext {
     private IServiceConverter serviceConverter;
     private IEntityClassConverter entityClassConverter;
     private IResourceClassConverter resourceClassConverter;
+
+    private IConvertSchema convertSchema;
 
     // 项目信息
     private Project project;
@@ -232,6 +207,14 @@ public class ConverterContext {
         return this;
     }
 
+    private static <T> T assign(T value, T defValue) {
+        if (value != null) {
+            return value;
+        } else {
+            return defValue;
+        }
+    }
+
     /**
      * 从配置文件中读取各种元素转换器配置，并创建相应的转换器实例
      */
@@ -240,7 +223,7 @@ public class ConverterContext {
             Class<?> nameConverterClass = Class.forName(converterConfig.getNameConverterClass());
             Class<?> typeConverterClass = Class.forName(converterConfig.getTypeConverterClass());
             Class<?> fieldConverterClass = Class.forName(converterConfig.getFieldConverterClass());
-            Class<?> instructionConverterClass = Class.forName(converterConfig.getServiceInstructionConverterClass());
+            Class<?> serviceInstructionConverterClass = Class.forName(converterConfig.getServiceInstructionConverterClass());
             Class<?> controllerMethodConverterClass = Class.forName(converterConfig.getControllerMethodConverterClass());
             Class<?> resourceAssemblerConverterClass = Class.forName(converterConfig.getHateoasResourceAssemblerConverterClass());
             Class<?> serviceConverterClass = Class.forName(converterConfig.getServiceConverterClass());
@@ -248,6 +231,32 @@ public class ConverterContext {
             Class<?> controllerClassConverterClass = Class.forName(converterConfig.getControllerConverterClass());
             Class<?> entityClassConverterClass = Class.forName(converterConfig.getEntityConverterClass());
             Class<?> resourceClassConverterClass = Class.forName(converterConfig.getHateoasResourceConverterClass());
+            Class<?> convertSchemaConverterClass = Class.forName(converterConfig.getConvertSchemaClass());
+
+            // 初始化转换方案类的初始化
+            Object rawConvertSchemaClassConverter = convertSchemaConverterClass.newInstance();
+            if (rawConvertSchemaClassConverter instanceof IConvertSchema) {
+                this.convertSchema = (IConvertSchema) rawConvertSchemaClassConverter;
+
+                SchemaConverterList converterList = new SchemaConverterList();
+                this.convertSchema.getConverterList(converterList);
+
+                // 如果有效，则读取来自这个方案里面的数据
+                nameConverterClass = converterList.getNameConverter();
+                typeConverterClass = converterList.getTypeConverter();
+                fieldConverterClass = converterList.getFieldConverter();
+                serviceInstructionConverterClass = converterList.getServiceInstructionConverter();
+                controllerMethodConverterClass = converterList.getControllerMethodConverter();
+                resourceAssemblerConverterClass = converterList.getResourceAssemblerConverter();
+                serviceConverterClass = converterList.getServiceConverter();
+                daoConverterClass = converterList.getDaoConverter();
+                controllerClassConverterClass = converterList.getControllerConverter();
+                entityClassConverterClass = converterList.getEntityClassConverter();
+                resourceClassConverterClass = converterList.getResourceClassConverter();
+
+            } else {
+                logger.warn("{} is not implementation of IConvertSchema, using default impl class");
+            }
 
             // 初始化名称转换器
             Object rawNameConverter = nameConverterClass.newInstance();
@@ -278,7 +287,7 @@ public class ConverterContext {
             }
 
             // 初始化指令转换器
-            Object rawInstructionConverter = instructionConverterClass.newInstance();
+            Object rawInstructionConverter = serviceInstructionConverterClass.newInstance();
             if (rawInstructionConverter instanceof IServiceInstructionConverter) {
                 this.instructionConverter = (IServiceInstructionConverter) rawInstructionConverter;
             } else {
@@ -291,7 +300,8 @@ public class ConverterContext {
             if (rawControllerMethodConverter instanceof IControllerMethodConverter) {
                 this.controllerMethodConverter = (IControllerMethodConverter) rawControllerMethodConverter;
             } else {
-                logger.warn("{} is not implementation of IControllerMethodConverter, using default impl class");
+                logger.warn("{} is not implementation of IControllerMethodConverter, using default impl class",
+                        converterConfig.getControllerMethodConverterClass());
             }
 
             // 初始化资源装配器转换器
@@ -299,7 +309,8 @@ public class ConverterContext {
             if (rawResourceAssemblerConverter instanceof IResourceAssemblerConverter) {
                 this.resourceAssemblerConverter = (IResourceAssemblerConverter) rawResourceAssemblerConverter;
             } else {
-                logger.warn("{} is not implementation of IResourceAssemblerConverter, using default impl class");
+                logger.warn("{} is not implementation of IResourceAssemblerConverter, using default impl class",
+                        converterConfig.getResourceAssemblerPackageName());
             }
 
             // 初始化 DAO 类元信息的转换器
@@ -307,7 +318,8 @@ public class ConverterContext {
             if (rawDaoConverterClass instanceof IDAOConverter) {
                 this.daoConverter = (IDAOConverter) rawDaoConverterClass;
             } else {
-                logger.warn("{} is not implementation of IDAOConverter, using default impl class");
+                logger.warn("{} is not implementation of IDAOConverter, using default impl class",
+                        converterConfig.getDaoConverterClass());
             }
 
             // 初始化 Service 类元信息的转换器
@@ -315,7 +327,8 @@ public class ConverterContext {
             if (rawServiceConverterClass instanceof IServiceConverter) {
                 this.serviceConverter = (IServiceConverter) rawServiceConverterClass;
             } else {
-                logger.warn("{} is not implementation of IServiceConverter, using default impl class");
+                logger.warn("{} is not implementation of IServiceConverter, using default impl class",
+                        converterConfig.getServiceConverterClass());
             }
 
             // 初始化 Controller 类的转换器
@@ -323,7 +336,8 @@ public class ConverterContext {
             if (rawControllerConverterClass instanceof IControllerConverter) {
                 this.controllerConverter = (IControllerConverter) rawControllerConverterClass;
             } else {
-                logger.warn("{} is not implementation of IControllerConverter, using default impl class");
+                logger.warn("{} is not implementation of IControllerConverter, using default impl class",
+                        converterConfig.getControllerConverterClass());
             }
 
             // 初始化实体类的转换器
@@ -331,7 +345,8 @@ public class ConverterContext {
             if (rawEntityClassConverter instanceof IEntityClassConverter) {
                 this.entityClassConverter = (IEntityClassConverter) rawEntityClassConverter;
             } else {
-                logger.warn("{} is not implementation of IEntityClassConverter, using default impl class");
+                logger.warn("{} is not implementation of IEntityClassConverter, using default impl class",
+                        converterConfig.getEntityConverterClass());
             }
 
             // 初始化资源类转换器
@@ -339,7 +354,8 @@ public class ConverterContext {
             if (rawResourceClassConverter instanceof IResourceClassConverter) {
                 this.resourceClassConverter = (IResourceClassConverter) rawResourceClassConverter;
             } else {
-                logger.warn("{} is not implementation of IResourceClassConverter, using default impl class");
+                logger.warn("{} is not implementation of IResourceClassConverter, using default impl class",
+                        converterConfig.getEntityConverterClass());
             }
 
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
@@ -364,6 +380,7 @@ public class ConverterContext {
         injectConverter(this.controllerConverter);
         injectConverter(this.entityClassConverter);
         injectConverter(this.resourceClassConverter);
+        injectConverter(this.convertSchema);
     }
 
     /**
@@ -419,6 +436,9 @@ public class ConverterContext {
                         case SERVICE:
                             field.set(converter, this.serviceConverter);
                             break;
+                        case CONVERT_SCHEMA:
+                            field.set(converter, this.convertSchema);
+                            break;
                     }
                 } else if (field.isAnnotationPresent(DataInject.class)) {
                     DataInject annotation = field.getAnnotation(DataInject.class);
@@ -465,6 +485,12 @@ public class ConverterContext {
                             break;
                         case EXCEPTION_PACKAGE_NAME:
                             field.set(converter, subPackage(converterConfig.getExceptionPackageName()));
+                            break;
+                        case BASE_PACKAGE_NAME:
+                            field.set(converter, this.basePackageName);
+                            break;
+                        case PROJECT:
+                            field.set(converter, this.project);
                             break;
                     }
                 }
@@ -520,6 +546,10 @@ public class ConverterContext {
 
         if (this.resourceClassConverter == null) {
             this.resourceClassConverter = new DefaultResourceClassConverter();
+        }
+
+        if (this.convertSchema == null) {
+            this.convertSchema = new SSHConvertSchemaImpl();
         }
 
         injectAllConverter();
@@ -599,309 +629,9 @@ public class ConverterContext {
     }
 
     /**
-     * 根据实体信息创建实体类
-     */
-    private void createEntityClasses() {
-        if (this.entityInfoList == null || this.entityInfoList.size() == 0) {
-            logger.warn("generation was terminated because no entity was found in context");
-            return;
-        }
-
-        // 1. 生成实体类信息
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo classInfo = this.entityClassConverter.basicInfo(entityInfo);
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS, classInfo);
-        }
-
-        // 2. 生成关联关系相关的字段
-        for (EntityRelationship relationship : this.entityRelationshipList) {
-            this.entityClassConverter.processRelationship(relationship);
-        }
-
-        // 3. 生成类相应的 get set 方法
-        Iterator<ClassInfo> entityClassInfoIterator = convertDataContext.iterateEntityClassInfo();
-        while (entityClassInfoIterator.hasNext()) {
-            ClassInfo entityClassInfo = entityClassInfoIterator.next();
-            ClassInfoUtils.createBothGetterAndSetter(entityClassInfo, converterConfig.isBuilderStyleSetter());
-        }
-    }
-
-    /**
-     * 创建 Service 类元信息
-     */
-    private void createServiceClasses() {
-        // 这里定义一些整个生成过程当中都会使用到的变量
-
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo serviceClass = this.serviceConverter.fromEntity(entityInfo);
-
-            // 根据 Service 类产生相应的接口
-            ClassInfo serviceInterface = new ClassInfo()
-                    .setClassName(this.nameConverter.serviceInterfaceNameFromEntityName(entityInfo.getName()))
-                    .setPackageName(subPackage(this.converterConfig.getServiceInterfacePackageName()))
-                    .setInterface(true);
-            serviceClass.implementInterface(serviceInterface.getType());
-
-            Iterator<MethodInfo> methodInfoIterator = serviceClass.iterateMethods();
-            TypeInfo overrideType = JDKAnnotationFactory.override().getType();
-
-            while (methodInfoIterator.hasNext()) {
-                MethodInfo methodInfo = methodInfoIterator.next();
-                if (MethodInfoUtils.isMethodContainsAnnotationType(methodInfo, overrideType)) {
-                    MethodInfo interfaceMethod = MethodInfoUtils.createMethodWithSameSignature(methodInfo);
-                    interfaceMethod.setDefineOnly(true);
-
-                    serviceInterface.addMethod(interfaceMethod);
-                }
-            }
-
-            // 将 Service 类保存起来
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_INTERFACE, serviceInterface);
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_SERVICE_IMPL_CLASS, serviceClass);
-            this.convertDataContext.saveServiceDefaultFieldName(entityInfo.getName(), this.nameConverter.defaultNameOfVariableName(serviceInterface.getClassName()));
-        }
-    }
-
-    /**
-     * 创建相关的 Spring Data DAO 接口
-     */
-    private void createDaoInterfaces() {
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo interfaceClass = this.daoConverter.fromEntity(entityInfo);
-
-            // 4. 将接口元数据保存起来
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_DAO_INTERFACE, interfaceClass);
-            this.convertDataContext.saveDAODefaultFieldName(
-                    entityInfo.getName(), this.nameConverter.defaultNameOfVariableName(interfaceClass.getClassName()));
-        }
-    }
-
-    /**
-     * 创建 Controller 类
-     */
-    private void createControllerClasses() {
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo controllerClass = this.controllerConverter.basicInfo(entityInfo);
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_CONTROLLER_CLASS, controllerClass);
-        }
-    }
-
-    /**
-     * 完善 Controller 类的信息
-     */
-    private void fillControllerClass() {
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo classInfo = this.controllerConverter.convertMethod(entityInfo);
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_CONTROLLER_CLASS, classInfo);
-        }
-    }
-
-    /**
-     * 创建用于 Spring HATEOAS 的资源类
-     */
-    private void createHateoasResourceClasses() {
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo resourceClassInfo = this.resourceClassConverter.fromEntity(entityInfo);
-
-            // 将这个类保存起来
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_RESOURCE_CLASS, resourceClassInfo);
-        }
-    }
-
-    /**
-     * 创建资源的装配类
-     */
-    private void createResourceAssembler() {
-        // 一些能够通用的变量
-
-        for (EntityInfo entityInfo : this.entityInfoList) {
-            ClassInfo assemblerClass = this.resourceAssemblerConverter.toResourceAssembler(entityInfo);
-
-            // X. 将这个类保存起来
-            this.convertDataContext.saveClassByEntityAndType(entityInfo.getName(), TYPE_ASSEMBLER_CLASS, assemblerClass);
-            this.convertDataContext.saveAssemblerDefaultFieldName(entityInfo.getName(), this.nameConverter.defaultNameOfVariableName(assemblerClass.getClassName()));
-        }
-    }
-
-    /**
-     * 创建 Spring Boot 的主类
-     */
-    private void createSpringBootRootApplication() {
-        // 1. 创建类信息
-        ClassInfo mainClass = new ClassInfo()
-                .setPackageName(getRootPackageName())
-                .setClassName("MainApplication");
-
-        if (this.converterConfig.isCrossOriginEnabled()) {
-            mainClass.extendClass(SpringMVCTypeFactory.webMvcConfigurerAdapter());
-        }
-
-        // 2. 创建相应的注解
-        AnnotationInfo appAnnotation = SpringBootAnnotationFactory.appAnnotation();
-        mainClass.addAnnotation(appAnnotation);
-
-        AnnotationInfo enableJPARepositories = SpringDataAnnotationFactory.enableJPARepositories(subPackage(converterConfig.getDaoPackageName()));
-        mainClass.addAnnotation(enableJPARepositories);
-
-        // 3. 创建 main 方法
-        MethodInfo mainMethod = MethodInfoFactory.createMainMethod();
-        mainClass.addMethod(mainMethod);
-
-        // 4. Spring Boot 的固定套路
-        TypeInfo springApplicationType = TypeInfoFactory.fromClass(SpringBootConstant.SPRING_APPLICATION);
-        IInstruction mainInstruction = InstructionFactory.invokeStaticMethod(
-                springApplicationType, false, "run", new Object[]{
-                        mainClass, ValueExpressionFactory.variable("args")
-                });
-        mainMethod.setRootInstruction(mainInstruction);
-
-        // 5. 判断是否支持跨域进行相关的配置
-        if (converterConfig.isCrossOriginEnabled()) {
-            MethodInfo crosConfigMethod = new MethodInfo()
-                    .setName("addCorsMappings")
-                    .addParameter(ParameterFactory.create(SpringMVCTypeFactory.corsRegistry(), "registry"))
-                    .addAnnotationInfo(JDKAnnotationFactory.override());
-
-            // 调用父类的相关方法进行配置
-            IValueExpression registryValueExpression = ValueExpressionFactory.variable("registry");
-            IInstruction parentAddCrosMappingsInstruction = InstructionFactory.invoke(
-                    ValueExpressionFactory.parent(), "addCorsMappings", new Object[]{registryValueExpression});
-
-            // 进行跨域的相应配置
-            IInstruction configInstruction = InstructionFactory.invoke(registryValueExpression, "addMapping", "/**")
-                    .invoke("allowedOrigins", "*")
-                    .invoke("allowedHeaders", "*")
-                    .invoke("allowCredentials", true)
-                    .invoke("allowedMethods", "*")
-                    .invoke("maxAge", 3600);
-
-            crosConfigMethod.setRootInstruction(InstructionFactory.sequence(
-                    parentAddCrosMappingsInstruction,
-                    InstructionFactory.emptyInstruction(),
-                    configInstruction
-            ));
-
-            mainClass.addMethod(crosConfigMethod);
-        }
-
-        // 6. 将类保存到包当中
-        this.convertDataContext.saveClassByPackageName(mainClass);
-    }
-
-    /**
-     * 这个方法用于创建一些共有类
-     */
-    private void createCommonClasses() {
-        // 1. PagedResource 类
-        ClassInfo pagedResourceClass = CommonClassFactory.createPagedResource(subPackage(converterConfig.getCommonPackageName()));
-        this.convertDataContext.saveCommonClass(ConverterContext.KEY_PAGED_RESOURCE, pagedResourceClass);
-
-        // 2. CommonExceptionHandler 类
-        ClassInfo commonExceptionHandlerClass = CommonClassFactory.commonExceptionHandler(subPackage(converterConfig.getControllerPackageName()), convertDataContext);
-        this.convertDataContext.saveCommonClass(ConverterContext.KEY_COMMON_EXCEPTION_HANDLER, commonExceptionHandlerClass);
-    }
-
-    /**
-     * 这个方法用于创建一些异常类
-     */
-    private void createExceptionClasses() {
-        // 1. 数据库外键约束异常类
-        ClassInfo dbConstraintException = CommonClassFactory.createSubTypeOfRuntimeException("DBConstraintException", subPackage(converterConfig.getExceptionPackageName()));
-
-        this.convertDataContext.saveCommonClass(ConverterContext.KEY_DB_CONSTRAINT_EXCEPTION, dbConstraintException);
-    }
-
-    /**
      * 将 context 对象当中所有的对象转换成 classInfo 元信息
      */
     public void generate() {
-        if (this.entityInfoList == null || this.entityInfoList.size() == 0) {
-            logger.debug("generation was terminated because no entity was found in context");
-            return;
-        }
-
-        // 创建主类
-        createSpringBootRootApplication();
-
-        // 创建 Swagger 的配置类
-        createSwaggerConfigClass();
-
-        // 创建异常类
-        createExceptionClasses();
-
-        // 先创建共有类
-        createCommonClasses();
-
-        // 生成实体类（PO 类）
-        createEntityClasses();
-
-        // 生成 Spring Data DAO 接口
-        createDaoInterfaces();
-
-        // 生成 Service 类
-        createServiceClasses();
-
-        // 创建 Controller 类
-        createControllerClasses();
-
-        // 创建 HATEOAS 相关类
-        createHateoasResourceClasses();
-
-        // 创建 HATEOAS 资源装配类
-        createResourceAssembler();
-
-        // 完善 Controller 类信息
-        fillControllerClass();
-    }
-
-    /**
-     * 创建 Swagger 的主配置类信息
-     */
-    private void createSwaggerConfigClass() {
-        ClassInfo classInfo = new ClassInfo()
-                .setPackageName(getRootPackageName())
-                .setClassName("SwaggerConfig")
-                .addAnnotation(SpringFrameworkAnnotationFactory.configuration())
-                .addAnnotation(SwaggerAnnotationFactory.enableSwagger());
-
-        // 1. apiInfo 方法的创建
-        {
-            MethodInfo apiInfoMethod = new MethodInfo()
-                    .setName("apiInfo")
-                    .setReturnValueType(SwaggerTypeFactory.apiInfo());
-
-            IValueExpression returnExpression = ValueExpressionFactory.invokeConstructor(SwaggerTypeFactory.apiInfoBuilder())
-                    .invokeMethod("title", new Object[]{this.project.getProjectName()})
-                    .invokeMethod("version", new Object[]{this.project.getVersion()})
-                    .invokeMethod("build");
-            IInstruction returnInstruction = InstructionFactory.returnInstruction(returnExpression);
-            apiInfoMethod.setRootInstruction(returnInstruction);
-
-            classInfo.addMethod(apiInfoMethod);
-        }
-
-        // 2. docket 方法的创建
-        {
-            MethodInfo docketMethod = new MethodInfo()
-                    .addAnnotationInfo(SpringFrameworkAnnotationFactory.bean())
-                    .setName("docket")
-                    .setReturnValueType(SwaggerTypeFactory.docket());
-
-            IValueExpression returnValueExpression =
-                    ValueExpressionFactory.invokeConstructor(SwaggerTypeFactory.docket(), new Object[]{ValueExpressionFactory.classForStatic(SwaggerTypeFactory.documentType()).accessField("SWAGGER_2")})
-                            .invokeMethod("apiInfo", ValueExpressionFactory.thisReference().invokeMethod("apiInfo"))
-                            .invokeMethod("select")
-                            .invokeMethod("apis", ValueExpressionFactory.classForStatic(SwaggerTypeFactory.requestHandlerSelectors()).invokeMethod("basePackage", this.basePackageName))
-                            .invokeMethod("paths", ValueExpressionFactory.classForStatic(SwaggerTypeFactory.pathSelector()).invokeMethod("any"))
-                            .invokeMethod("build")
-                            .invokeMethod("ignoredParameterTypes", SpringDataTypeFactory.pageable())
-                            .invokeMethod("useDefaultResponseMessages", false);
-            IInstruction returnInstruction = InstructionFactory.returnInstruction(returnValueExpression);
-            docketMethod.setRootInstruction(returnInstruction);
-
-            classInfo.addMethod(docketMethod);
-        }
-
-        this.convertDataContext.saveClassByPackageName(classInfo);
+        this.convertSchema.generate();
     }
 }
