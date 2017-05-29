@@ -16,13 +16,17 @@ import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.framework.jpa.JPAAnnotationFactory;
 import cn.dyr.rest.generator.framework.jpa.JPARelationshipAnnotationBuilder;
 import cn.dyr.rest.generator.java.meta.AnnotationInfo;
+import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameterFactory;
+import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
 import java.util.Iterator;
+import java.util.List;
 
+import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
 import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_MANY;
 import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_ONE;
 import static cn.dyr.rest.generator.entity.RelationshipType.ONE_TO_MANY;
@@ -419,7 +423,33 @@ public class DefaultFieldConverter implements IFieldConverter {
         while (handlerIterator.hasNext()) {
             ConvertDataContext.RelationshipHandler relationshipHandler = handlerIterator.next();
 
+            // 判断是否要进行数据库结构的微调
+            if (relationshipHandler.getType() == RelationshipType.ONE_TO_ONE ||
+                    relationshipHandler.getType() == RelationshipType.MANY_TO_MANY) {
+                continue;
+            }
 
+            String handlerEntityName = relationshipHandler.getHandler();
+            List<ConvertDataContext.RelationshipHandler> relationships =
+                    dataContext.findRelationshipBetween(handlerEntityName,
+                            relationshipHandler.getToBeHandled());
+            if (relationships.size() > 1) {
+                continue;
+            }
+
+            // 取出维护这个关联关系的字段信息
+            ClassInfo entityClass = dataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+            FieldInfo fieldInfo = entityClass.findFieldByName(relationshipHandler.getHandlerFieldName());
+
+            if (relationshipHandler.getType() == ONE_TO_MANY) {
+                AnnotationInfo joinColumnAnnotation = JPAAnnotationFactory.joinColumn(
+                        String.format("ref_%s", StringUtils.lowerFirstLatter(entityClass.getClassName())));
+                fieldInfo.addAnnotation(joinColumnAnnotation);
+            } else if (relationshipHandler.getType() == MANY_TO_ONE) {
+                AnnotationInfo joinColumnAnnotation = JPAAnnotationFactory.joinColumn(
+                        String.format("ref_%s", StringUtils.lowerFirstLatter(relationshipHandler.getHandlerFieldName())));
+                fieldInfo.addAnnotation(joinColumnAnnotation);
+            }
         }
     }
 }

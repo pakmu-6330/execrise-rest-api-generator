@@ -576,7 +576,13 @@ public class ClassInfo implements IImportProcessor {
         }
     }
 
-    private FieldInfo findFieldByName(String name) {
+    /**
+     * 根据字段名称找到相应的字段信息
+     *
+     * @param name 字段名称
+     * @return 这个字段名称对应的字段信息
+     */
+    public FieldInfo findFieldByName(String name) {
         if (fields == null || fields.size() == 0) {
             return null;
         }

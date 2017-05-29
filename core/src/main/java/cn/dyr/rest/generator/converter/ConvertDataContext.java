@@ -240,6 +240,27 @@ public class ConvertDataContext implements ITypeContext {
     }
 
     /**
+     * 根据关联关系两端的实体查找关联关系
+     *
+     * @param entityA 其中一端的实体
+     * @param entityB 另外一端的实体
+     * @return 指定的两个实体之间的关联关系都会被找出来
+     */
+    public List<RelationshipHandler> findRelationshipBetween(String entityA, String entityB) {
+        Set<RelationshipHandler> handlers = this.handlerMetaInfoMap.keySet();
+        List<RelationshipHandler> retHandler = new ArrayList<>();
+
+        for (RelationshipHandler handler : handlers) {
+            if ((handler.getHandler().equals(entityA) && handler.getToBeHandled().equals(entityB)) ||
+                    (handler.getHandler().equals(entityB) && handler.getToBeHandled().equals(entityA))) {
+                retHandler.add(handler);
+            }
+        }
+
+        return retHandler;
+    }
+
+    /**
      * 根据关联关系的被控方获得关联关系的数据
      *
      * @param handled 关联关系的被控方

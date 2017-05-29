@@ -20,6 +20,7 @@ import cn.dyr.rest.generator.converter.clazz.IResourceAssemblerConverter;
 import cn.dyr.rest.generator.converter.clazz.IResourceClassConverter;
 import cn.dyr.rest.generator.converter.clazz.IServiceConverter;
 import cn.dyr.rest.generator.converter.field.DefaultFieldConverter;
+import cn.dyr.rest.generator.converter.field.IFieldConverter;
 import cn.dyr.rest.generator.converter.instruction.DefaultServiceInstructionConverter;
 import cn.dyr.rest.generator.converter.method.DefaultControllerMethodConverter;
 import cn.dyr.rest.generator.converter.name.INameConverter;
@@ -116,6 +117,9 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
 
     @ConverterInject(ConverterInjectType.RESOURCE_ASSEMBLER)
     private IResourceAssemblerConverter resourceAssemblerConverter;
+
+    @ConverterInject(ConverterInjectType.FIELD)
+    private IFieldConverter fieldConverter;
 
     @Override
     public void getConverterList(SchemaConverterList schemaConverterList) {
@@ -308,6 +312,9 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
             ClassInfo entityClassInfo = entityClassInfoIterator.next();
             ClassInfoUtils.createBothGetterAndSetter(entityClassInfo, converterConfig.isBuilderStyleSetter());
         }
+
+        // 4. 进行数据库结构的微调
+        this.fieldConverter.postRelationshipProcess();
     }
 
     /**
