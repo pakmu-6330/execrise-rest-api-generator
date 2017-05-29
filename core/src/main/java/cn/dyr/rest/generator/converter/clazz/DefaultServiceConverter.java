@@ -494,6 +494,13 @@ public class DefaultServiceConverter implements IServiceConverter {
      * @param entityInfo 实体信息
      */
     private void handleRelatedEntityQueryMethod(ClassInfo classInfo, EntityInfo entityInfo) {
+        // 寻找本实体类的 DAO 名称
+        String daoFieldName = convertDataContext.getDAODefaultFieldName(entityInfo.getName());
+        IValueExpression daoValueExpression = ValueExpressionFactory.variable(daoFieldName);
+
+        // 寻找本实体类
+        ClassInfo entityClass = convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
+
         // 寻找自身维护的关联关系
         List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
         if (handlers != null) {
@@ -516,12 +523,12 @@ public class DefaultServiceConverter implements IServiceConverter {
                 if (handler.getType() == RelationshipType.MANY_TO_MANY ||
                         handler.getType() == RelationshipType.MANY_TO_ONE) {
                     if (converterConfig.isPagingEnabled()) {
-                        returnType = SpringDataTypeFactory.pageTypeWithGeneric(classInfo.getType());
+                        returnType = SpringDataTypeFactory.pageTypeWithGeneric(entityClass.getType());
                     } else {
-                        returnType = CollectionsTypeFactory.listWithGeneric(classInfo.getType());
+                        returnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
                     }
                 } else {
-                    returnType = classInfo.getType();
+                    returnType = entityClass.getType();
                 }
 
                 // 方法的名称
@@ -545,6 +552,24 @@ public class DefaultServiceConverter implements IServiceConverter {
                     Parameter pageable = ParameterFactory.create(PAGEABLE_TYPE, "pageable");
                     methodInfo.addParameter(pageable);
                 }
+
+                // 创建 Override 注解
+                methodInfo.addAnnotationInfo(JDKAnnotationFactory.override());
+
+                // 生成相应的指令
+                IValueExpression returnValueExpression = null;
+                if (converterConfig.isPagingEnabled()) {
+                    returnValueExpression = daoValueExpression.invokeMethod(methodName, new Object[]{
+                            ValueExpressionFactory.variable(idParameter.getName()),
+                            ValueExpressionFactory.variable("pageable")
+                    });
+                } else {
+                    returnValueExpression = daoValueExpression.invokeMethod(methodName, new Object[]{
+                            ValueExpressionFactory.variable(idParameter.getName())
+                    });
+                }
+
+                methodInfo.setRootInstruction(InstructionFactory.returnInstruction(returnValueExpression));
 
                 classInfo.addMethod(methodInfo);
             }
