@@ -21,6 +21,8 @@ import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameterFactory;
 import net.oschina.util.Inflector;
 
+import java.util.Iterator;
+
 import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_MANY;
 import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_ONE;
 import static cn.dyr.rest.generator.entity.RelationshipType.ONE_TO_MANY;
@@ -407,6 +409,17 @@ public class DefaultFieldConverter implements IFieldConverter {
             return handleEndAField(relationship);
         } else {
             return handleEndBField(relationship);
+        }
+    }
+
+    @Override
+    public void postRelationshipProcess() {
+        // 对逐个的关系进行遍历，并检索出这个关联关系对应的字段信息
+        Iterator<ConvertDataContext.RelationshipHandler> handlerIterator = dataContext.iterateRelationshipHandlerInfo();
+        while (handlerIterator.hasNext()) {
+            ConvertDataContext.RelationshipHandler relationshipHandler = handlerIterator.next();
+
+
         }
     }
 }

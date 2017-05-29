@@ -64,6 +64,11 @@ public class JPAConstant {
     public static final String GENERATION_TYPE_ENUM_CLASS = "javax.persistence.GenerationType";
 
     /**
+     * JoinColumn 注解的类全名，用于在配置相关的外键信息
+     */
+    public static final String JOIN_COLUMN_ANNOTATION = "javax.persistence.JoinColumn";
+
+    /**
      * GenerationType 枚举成员 identity
      */
     public static final String GENERATION_TYPE_MEMBER_IDENTITY = "IDENTITY";

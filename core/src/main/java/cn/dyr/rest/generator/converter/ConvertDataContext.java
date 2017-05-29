@@ -287,6 +287,15 @@ public class ConvertDataContext implements ITypeContext {
     }
 
     /**
+     * 遍历当前容器当中所有的关联关系和对应字段的信息
+     *
+     * @return 用于迭代当前所有关联关系和对应字段信息的迭代器
+     */
+    public Iterator<RelationshipHandler> iterateRelationshipHandlerInfo() {
+        return this.handlerMetaInfoMap.keySet().iterator();
+    }
+
+    /**
      * 获得一个用于迭代包名的迭代器
      *
      * @return 用于迭代包名的迭代器

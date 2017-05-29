@@ -23,9 +23,15 @@ public interface IFieldConverter extends IConverter {
 
     /**
      * 将实体之间的关联关系转换成字段信息
+     *
      * @param relationship 要进行转换的关联关系
-     * @param forEndA 是否生成用于端 A 的字段
+     * @param forEndA      是否生成用于端 A 的字段
      * @return 这个关联关系在指定端的实现字段
      */
     FieldInfo fromRelationship(EntityRelationship relationship, boolean forEndA);
+
+    /**
+     * 这个方法用于定义在所有的的字段转换完成以后进行的一些处理
+     */
+    void postRelationshipProcess();
 }

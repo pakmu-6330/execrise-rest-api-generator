@@ -3,7 +3,6 @@ package cn.dyr.rest.generator.framework.jpa;
 import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
-import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameter;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameterFactory;
 
 /**
@@ -102,6 +101,22 @@ public class JPAAnnotationFactory {
 
         AnnotationInfo retValue = new AnnotationInfo();
         retValue.setType(columnTypeInfo);
+
+        return retValue;
+    }
+
+    /**
+     * 创建一个 JoinColumn 注解信息
+     *
+     * @param name 外键列名
+     * @return 相应的 JoinColumn 注解
+     */
+    public static AnnotationInfo joinColumn(String name) {
+        TypeInfo joinColumnTypeInfo = TypeInfoFactory.fromClass(JPAConstant.JOIN_COLUMN_ANNOTATION);
+
+        AnnotationInfo retValue = new AnnotationInfo();
+        retValue.setType(joinColumnTypeInfo);
+        retValue.addParameter("name", name);
 
         return retValue;
     }
