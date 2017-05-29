@@ -27,6 +27,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +56,7 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
     private JButton btnDeleteEntity;
     private JButton btnNewAttribute;
     private JButton btnDeleteAttribute;
+    private JButton btnIdAttributeCreate;
 
     private JPanel mainPanel;
 
@@ -111,11 +113,15 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
         this.btnDeleteAttribute = new JButton("删除属性");
         this.btnDeleteAttribute.addActionListener(this);
 
+        this.btnIdAttributeCreate = new JButton("创建唯一标示符");
+        this.btnIdAttributeCreate.addActionListener(this);
+
         JPanel buttonPanel = new JPanel(new BorderLayout());
 
         JPanel attributeButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         attributeButtonsPanel.add(btnNewAttribute);
         attributeButtonsPanel.add(btnDeleteAttribute);
+        attributeButtonsPanel.add(btnIdAttributeCreate);
 
         JPanel forGoodLooking = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         forGoodLooking.add(this.btnDeleteEntity);
@@ -334,6 +340,26 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
                     }
                 }
             }
+        } else if (source == this.btnIdAttributeCreate) {
+            // 先检查是否已经存在唯一标识符属性
+            for (AttributeModel attributeModel : this.attributeTable.getAttributeModelList()) {
+                if (attributeModel.getName().equalsIgnoreCase("id")) {
+                    JOptionPane.showMessageDialog(
+                            this, "当前实体已经存在名为 \"id\" 的属性",
+                            SwingUIApplication.APP_NAME, JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
+            // 创建唯一标识符的属性
+            AttributeModel idAttributeModel = new AttributeModel()
+                    .setName("id")
+                    .setDescription("唯一标识符")
+                    .setType("long")
+                    .setPrimaryIdentifier(true)
+                    .setMandatory(true)
+                    .setAsSelectionCondition(true);
+            this.attributeTable.addAttribute(idAttributeModel);
         }
     }
 }

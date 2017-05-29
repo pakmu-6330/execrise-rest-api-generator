@@ -63,19 +63,21 @@ public class AttributeModel implements Serializable {
         return this;
     }
 
-    public boolean isMandatory() {
-        return mandatory;
-    }
-
-    public void setMandatory(boolean mandatory) {
-        this.mandatory = mandatory;
-    }
-
     public boolean isExpose() {
         return expose;
     }
 
-    public void setExpose(boolean expose) {
+    public AttributeModel setExpose(boolean expose) {
         this.expose = expose;
+        return this;
+    }
+
+    public boolean isMandatory() {
+        return mandatory;
+    }
+
+    public AttributeModel setMandatory(boolean mandatory) {
+        this.mandatory = mandatory;
+        return this;
     }
 }

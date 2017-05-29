@@ -71,6 +71,12 @@ public class AttributeTable extends JTable {
         return retValue;
     }
 
+    public void addAttribute(AttributeModel attributeModel) {
+        this.attributeModelList.add(attributeModel);
+
+        EventQueue.invokeLater(this::updateUI);
+    }
+
     public List<AttributeModel> getAttributeModelList() {
         return attributeModelList;
     }
