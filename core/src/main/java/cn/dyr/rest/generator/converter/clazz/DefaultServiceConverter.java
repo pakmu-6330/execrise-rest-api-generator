@@ -13,6 +13,7 @@ import cn.dyr.rest.generator.entity.RelationshipType;
 import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
+import cn.dyr.rest.generator.framework.spring.data.SpringDataParameterFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
@@ -578,6 +579,62 @@ public class DefaultServiceConverter implements IServiceConverter {
         // 寻找维护关联关系的对方
     }
 
+    /**
+     * 处理由关系维护方查询关系被维护方的查询方法
+     *
+     * @param classInfo  Service 类实例
+     * @param entityInfo 实体信息类
+     */
+    private void handleHandledQueryMethod(ClassInfo classInfo, EntityInfo entityInfo) {
+        ClassInfo thisEntityClass = convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
+        String daoFieldName = convertDataContext.getDAODefaultFieldName(entityInfo.getName());
+        IValueExpression daoFieldValueExpression = ValueExpressionFactory.variable(daoFieldName);
+
+        List<ConvertDataContext.RelationshipHandler> handledList = convertDataContext.findByHandled(entityInfo.getName());
+        if (handledList != null) {
+            for (ConvertDataContext.RelationshipHandler handler : handledList) {
+                String handlerEntityName = handler.getHandler();
+                ClassInfo handlerEntityClass = convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+                FieldInfo handlerIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
+
+                MethodInfo queryMethod = new MethodInfo();
+
+                // 方法名称
+                String methodName = String.format("findBy%s%s",
+                        StringUtils.upperFirstLatter(handlerEntityClass.getClassName()),
+                        StringUtils.upperFirstLatter(handlerIdField.getName()));
+
+                // 根据是否启用分页设置方法的返回值和参数
+                queryMethod.addAnnotationInfo(JDKAnnotationFactory.override());
+                queryMethod.setName(methodName);
+                queryMethod.addParameter(ParameterFactory.create(handlerIdField.getType(), "id"));
+                IValueExpression returnValue;
+
+                if (converterConfig.isPagingEnabled()) {
+                    queryMethod.setReturnValueType(
+                            SpringDataTypeFactory.pageTypeWithGeneric(thisEntityClass.getType()));
+                    queryMethod.addParameter(SpringDataParameterFactory.pageable());
+
+                    returnValue = daoFieldValueExpression.invokeMethod(methodName, new Object[]{
+                            ValueExpressionFactory.variable("id"),
+                            ValueExpressionFactory.variable("pageable")
+                    });
+                } else {
+                    queryMethod.setReturnValueType(
+                            CollectionsTypeFactory.listWithGeneric(thisEntityClass.getType()));
+
+                    returnValue = daoFieldValueExpression.invokeMethod(methodName, ValueExpressionFactory.variable("id"));
+                }
+
+                // 这个方法的指令
+                queryMethod.setRootInstruction(InstructionFactory.returnInstruction(returnValue));
+
+                // 将这个方法添加到类中
+                classInfo.addMethod(queryMethod);
+            }
+        }
+    }
+
     @Override
     public ClassInfo fromEntity(EntityInfo entityInfo) {
         ClassInfo entityClass = this.convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
@@ -670,6 +727,7 @@ public class DefaultServiceConverter implements IServiceConverter {
 
         // Service 关联的查询
         handleRelatedEntityQueryMethod(serviceClass, entityInfo);
+        handleHandledQueryMethod(serviceClass, entityInfo);
 
         return serviceClass;
     }

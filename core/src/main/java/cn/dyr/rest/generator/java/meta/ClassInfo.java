@@ -7,6 +7,8 @@ import cn.dyr.rest.generator.java.generator.analysis.ImportContext;
 import cn.dyr.rest.generator.java.generator.analysis.ImportedOperation;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,9 +31,11 @@ import static cn.dyr.rest.generator.util.TypeInfoAssertUtils.assertNotPrimitiveT
 public class ClassInfo implements IImportProcessor {
 
     private static final AtomicLong counter;
+    private static Logger logger;
 
     static {
         counter = new AtomicLong();
+        logger = LoggerFactory.getLogger(ClassInfo.class);
     }
 
     private ModifierInfo modifier;
@@ -525,5 +529,58 @@ public class ClassInfo implements IImportProcessor {
         }
 
         return null;
+    }
+
+    /**
+     * 寻找类中指定方法名称的所有方法信息
+     *
+     * @param name 要查找的方法的名称
+     * @return 含有这个名称的方法信息的集合；如果这个类中含有多个同名方法，那么这些方法都会储存在集合类里面；如果这个类中不存在指定名称的方法，则返回一个空列表而不是 null
+     */
+    public List<MethodInfo> findMethodByName(String name) {
+        List<MethodInfo> list = new ArrayList<>();
+
+        if (this.methods != null && this.methods.size() > 0) {
+            for (MethodInfo methodInfo : this.methods) {
+                if (methodInfo.getName().equals(name)) {
+                    list.add(methodInfo);
+                }
+            }
+        }
+
+        return list;
+    }
+
+    /**
+     * 根据相应的 get/set 方法名称获得相应的字段
+     *
+     * @param methodName 操作方法名称
+     * @return 对应的字段信息
+     */
+    public FieldInfo findByPropertyMethodName(String methodName) {
+        String fieldName = null;
+
+        if (methodName.startsWith("get")) {
+            fieldName = StringUtils.lowerFirstLatter(methodName.substring(3));
+        } else if (methodName.startsWith("set")) {
+            fieldName = StringUtils.lowerFirstLatter(methodName.substring(3));
+        } else if (methodName.startsWith("is")) {
+            fieldName = StringUtils.lowerFirstLatter(methodName.substring(2));
+        }
+
+        if (fieldName == null) {
+            logger.warn("invalid method name: {}", methodName);
+            return null;
+        } else {
+            return findFieldByName(fieldName);
+        }
+    }
+
+    private FieldInfo findFieldByName(String name) {
+        if (fields == null || fields.size() == 0) {
+            return null;
+        }
+
+        return this.fields.get(name);
     }
 }

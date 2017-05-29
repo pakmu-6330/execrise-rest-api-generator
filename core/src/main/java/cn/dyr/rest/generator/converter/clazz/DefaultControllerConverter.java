@@ -121,7 +121,34 @@ public class DefaultControllerConverter implements IControllerConverter {
 
         controllerClass.addField(serviceField);
 
+        // 3. 本实体相关的 Service 字段
+        generateRelatedServiceField(controllerClass, entityInfo);
+
         return controllerClass;
+    }
+
+    /**
+     * 产生相关的 Service 接口字段
+     *
+     * @param classInfo  本 Service 类
+     * @param entityInfo 这个 Service 类相关的实体信息
+     */
+    private void generateRelatedServiceField(ClassInfo classInfo, EntityInfo entityInfo) {
+        // 本实体维护的关系对方实体对应的 Service 类字段
+        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
+        if (handlers != null) {
+            for (ConvertDataContext.RelationshipHandler handler : handlers) {
+                String handledEntityName = handler.getToBeHandled();
+
+                ClassInfo serviceInterface = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_SERVICE_INTERFACE);
+                FieldInfo serviceField = new FieldInfo()
+                        .setPrivate()
+                        .setType(serviceInterface.getType())
+                        .setName(convertDataContext.getServiceDefaultFieldName(handledEntityName))
+                        .addAnnotation(SpringFrameworkAnnotationFactory.autowired());
+                classInfo.addField(serviceField);
+            }
+        }
     }
 
     @Override

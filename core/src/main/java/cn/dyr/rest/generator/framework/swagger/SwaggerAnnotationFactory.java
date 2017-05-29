@@ -4,6 +4,7 @@ import cn.dyr.rest.generator.framework.j2ee.ServletValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
+import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameter;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameterFactory;
 
 /**
@@ -53,31 +54,77 @@ public class SwaggerAnnotationFactory {
     }
 
     /**
-     * 创建一个用于 Spring Data 分页的参数描述
+     * 创建分页大小的参数注解
      *
-     * @return 参数描述的注解
+     * @param defaultSize 默认分页大小
+     * @return 分页大小 Swagger 参数
      */
-    public static AnnotationInfo springDataPageableParameter(int defaultSize) {
-        TypeInfo implicitParams = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAMS);
+    public static AnnotationInfo springDataPageableSizeAnnotation(int defaultSize) {
         TypeInfo implicitParam = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAM);
-
-        AnnotationInfo paramsAnnotation = new AnnotationInfo().setType(implicitParams);
-
-        AnnotationInfo pageAnnotation = new AnnotationInfo().setType(implicitParam)
-                .addParameter("name", AnnotationParameterFactory.stringParameter("page"))
-                .addParameter("dataType", AnnotationParameterFactory.stringParameter("int"))
-                .addParameter("paramType", AnnotationParameterFactory.stringParameter("query"))
-                .addParameter("value", AnnotationParameterFactory.stringParameter("页码"))
-                .addParameter("defaultValue", AnnotationParameterFactory.stringParameter("0"));
-        AnnotationInfo sizeAnnotation = new AnnotationInfo().setType(implicitParam)
+        return new AnnotationInfo().setType(implicitParam)
                 .addParameter("name", AnnotationParameterFactory.stringParameter("size"))
                 .addParameter("dataType", AnnotationParameterFactory.stringParameter("int"))
                 .addParameter("paramType", AnnotationParameterFactory.stringParameter("query"))
                 .addParameter("value", AnnotationParameterFactory.stringParameter("分页大小"))
                 .addParameter("defaultValue", AnnotationParameterFactory.stringParameter(String.valueOf(defaultSize)));
-        paramsAnnotation.setDefaultValue(AnnotationParameterFactory.annotationArray(pageAnnotation, sizeAnnotation));
+    }
 
-        return paramsAnnotation;
+    /**
+     * 创建分页页码的注解参数
+     *
+     * @return 分页页码参数的 Swagger 注解
+     */
+    public static AnnotationInfo springDataPageablePageAnnotation() {
+        TypeInfo implicitParam = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAM);
+        return new AnnotationInfo().setType(implicitParam)
+                .addParameter("name", AnnotationParameterFactory.stringParameter("page"))
+                .addParameter("dataType", AnnotationParameterFactory.stringParameter("int"))
+                .addParameter("paramType", AnnotationParameterFactory.stringParameter("query"))
+                .addParameter("value", AnnotationParameterFactory.stringParameter("页码"))
+                .addParameter("defaultValue", AnnotationParameterFactory.stringParameter("0"));
+    }
+
+    /**
+     * 创建一个 path 类型的注解参数
+     *
+     * @param name         参数名称
+     * @param type         参数类型
+     * @param value        参数说明
+     * @param defaultValue 参数默认值
+     * @return 这个参数对应的 Swagger 注解
+     */
+    public static AnnotationInfo implicitPathParam(String name, String type, String value, String defaultValue) {
+        TypeInfo implicitParam = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAM);
+        return new AnnotationInfo().setType(implicitParam)
+                .addParameter("name", AnnotationParameterFactory.stringParameter(name))
+                .addParameter("dataType", AnnotationParameterFactory.stringParameter(type))
+                .addParameter("paramType", AnnotationParameterFactory.stringParameter("path"))
+                .addParameter("value", AnnotationParameterFactory.stringParameter(value))
+                .addParameter("defaultValue", AnnotationParameterFactory.stringParameter(defaultValue));
+    }
+
+    /**
+     * 根据一系列的参数注解创建一个 ImplicitParams 数组
+     *
+     * @param annotationInfoList 数组列表
+     * @return 相应的注解数组
+     */
+    public static AnnotationInfo implicitParams(AnnotationInfo... annotationInfoList) {
+        TypeInfo implicitParams = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAMS);
+        return new AnnotationInfo().setType(implicitParams)
+                .setDefaultValue(AnnotationParameterFactory.annotationArray(annotationInfoList));
+    }
+
+    /**
+     * 创建一个用于 Spring Data 分页的参数描述
+     *
+     * @return 参数描述的注解
+     */
+    public static AnnotationInfo springDataPageableParameter(int defaultSize) {
+        AnnotationInfo pageAnnotation = springDataPageablePageAnnotation();
+        AnnotationInfo sizeAnnotation = springDataPageableSizeAnnotation(defaultSize);
+
+        return implicitParams(pageAnnotation, sizeAnnotation);
     }
 
     /**

@@ -8,6 +8,8 @@ import cn.dyr.rest.generator.converter.DataInject;
 import cn.dyr.rest.generator.converter.DataInjectType;
 import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
+import cn.dyr.rest.generator.entity.EntityRelationship;
+import cn.dyr.rest.generator.entity.RelationshipType;
 import cn.dyr.rest.generator.framework.jdk.JDKAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.SpringFrameworkTypeFactory;
@@ -25,6 +27,8 @@ import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +36,9 @@ import java.util.List;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_CONTROLLER_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_CLASS;
+import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_MANY;
+import static cn.dyr.rest.generator.entity.RelationshipType.MANY_TO_ONE;
+import static cn.dyr.rest.generator.entity.RelationshipType.ONE_TO_MANY;
 
 /**
  * 这个资源装配类为默认的资源装配类实现
@@ -40,6 +47,12 @@ import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_C
  * @version 0.1.0001
  */
 public class DefaultResourceAssemblerConverter implements IResourceAssemblerConverter {
+
+    private static Logger logger;
+
+    static {
+        logger = LoggerFactory.getLogger(DefaultResourceAssemblerConverter.class);
+    }
 
     @DataInject(DataInjectType.DATA_CONTEXT)
     private ConvertDataContext context;
@@ -125,10 +138,39 @@ public class DefaultResourceAssemblerConverter implements IResourceAssemblerConv
                                 SpringHATEOASConstant.CONTROLLER_LINK_BUILDER_METHOD_ON, new Object[]{
                                         controllerClass.getType()
                                 }).toValueExpression();
-                IValueExpression linkToExpression = methodOnExpression
-                        .invokeMethod(relatedEntityGetter.getName(), new Object[]{
-                                entityIdValue
-                        });
+
+                // 寻找这个类背后的关联关系信息
+                FieldInfo fieldInfo = entityClass.findByPropertyMethodName(relatedEntityGetter.getName());
+                if (fieldInfo == null) {
+                    logger.warn("failed to handle relationship on method: {}", relatedEntityGetter.getName());
+                    continue;
+                }
+
+                EntityRelationship relationship = context.getRelationship(entityClass, fieldInfo);
+                if (relationship == null) {
+                    logger.warn("failed to handle relationship on method: {}", relatedEntityGetter.getName());
+                    continue;
+                }
+
+                boolean thisAsEntityA = (entityInfo.getName().equals(relationship.getEndA().getName()));
+                boolean thisAsEntityB = (entityInfo.getName().equals(relationship.getEndB().getName()));
+                boolean oppositeAsManyEnd =
+                        (thisAsEntityA && relationship.getType() == ONE_TO_MANY || relationship.getType() == MANY_TO_MANY) ||
+                                (thisAsEntityB && relationship.getType() == MANY_TO_ONE || relationship.getType() == MANY_TO_MANY);
+
+                IValueExpression linkToExpression = null;
+                if (oppositeAsManyEnd && config.isPagingEnabled()) {
+                    linkToExpression = methodOnExpression
+                            .invokeMethod(relatedEntityGetter.getName(), new Object[]{
+                                    entityIdValue, ValueExpressionFactory.nullExpression()
+                            });
+                } else {
+                    linkToExpression = methodOnExpression
+                            .invokeMethod(relatedEntityGetter.getName(), new Object[]{
+                                    entityIdValue
+                            });
+                }
+
                 IValueExpression addLinkExpression = InstructionFactory
                         .invokeStaticMethod(
                                 SpringHATEOASTypeFactory.controllerLinkBuilderType(), true,
