@@ -1,6 +1,7 @@
 package cn.dyr.rest.generator.converter.method;
 
 import cn.dyr.rest.generator.converter.ConvertDataContext;
+import cn.dyr.rest.generator.converter.ConverterConfig;
 import cn.dyr.rest.generator.converter.ConverterContext;
 import cn.dyr.rest.generator.converter.ConverterInject;
 import cn.dyr.rest.generator.converter.DataInject;
@@ -34,6 +35,7 @@ import java.util.Objects;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_CLASS;
 import static cn.dyr.rest.generator.converter.ConverterInjectType.NAME;
+import static cn.dyr.rest.generator.converter.DataInjectType.CONFIG;
 import static cn.dyr.rest.generator.converter.DataInjectType.DATA_CONTEXT;
 
 /**
@@ -46,6 +48,9 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
     @DataInject(DATA_CONTEXT)
     private ConvertDataContext context;
+
+    @DataInject(CONFIG)
+    private ConverterConfig converterConfig;
 
     @ConverterInject(NAME)
     private INameConverter nameConverter;
@@ -568,8 +573,18 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         FieldInfo handlerIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
         MethodInfo relationGetterMethod = handlerEntityClass.getterMethod(handlerFieldName);
 
+        MethodInfo retMethod = new MethodInfo();
+
         // 创建返回值
-        TypeInfo returnResourceType = listHandledResourceType;
+        TypeInfo returnResourceType = null;
+        if (converterConfig.isPagingEnabled()) {
+            ClassInfo pagedResourceClass = context.getCommonClass(ConverterContext.KEY_PAGED_RESOURCE);
+            TypeInfo pagedResourceType = pagedResourceClass.getType();
+            returnResourceType = TypeInfoFactory.wrapGenerics(pagedResourceType, handledEntityClass.getType());
+        } else {
+            returnResourceType = CollectionsTypeFactory.listWithGeneric(handledEntityClass.getType());
+        }
+
         TypeInfo returnType = SpringMVCTypeFactory.httpEntity(returnResourceType);
 
         // 添加参数
@@ -626,7 +641,7 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
                         notFoundReturnInstruction))
                 .setElse(returnExistInstruction).build();
 
-        return new MethodInfo()
+        return retMethod
                 .setName(methodName)
                 .setReturnValueType(returnType)
                 .addParameter(idParameter)

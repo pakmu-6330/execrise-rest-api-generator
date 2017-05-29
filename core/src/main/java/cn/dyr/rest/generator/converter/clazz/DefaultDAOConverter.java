@@ -15,6 +15,7 @@ import cn.dyr.rest.generator.framework.jpa.JPAConstant;
 import cn.dyr.rest.generator.framework.jpa.JPQLGenerator;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataConstant;
+import cn.dyr.rest.generator.framework.spring.data.SpringDataParameterFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
@@ -50,6 +51,152 @@ public class DefaultDAOConverter implements IDAOConverter {
 
     @DataInject(DataInjectType.DAO_PACKAGE_NAME)
     private String daoPackageName;
+
+    /**
+     * 创建用于根据被维护方数据查询本实体数据的关联关系查询方法
+     *
+     * @param interfaceClass 接口信息
+     * @param entityInfo     本实体信息
+     */
+    private void createInverseQueryMethod(ClassInfo interfaceClass, EntityInfo entityInfo) {
+        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
+        ClassInfo entityClass = convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
+        FieldInfo idField = ClassInfoUtils.findSingleId(entityClass);
+
+        TypeInfo listReturnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
+
+        for (ConvertDataContext.RelationshipHandler relationship : handlers) {
+            // 判断是否为单向
+            String handledFieldName = relationship.getHandledFieldName();
+            if (handledFieldName != null && !"".equals(handledFieldName.trim())) {
+                continue;
+            }
+
+            // 寻找另外一方的实体
+            String handledEntityName = relationship.getToBeHandled();
+
+            ClassInfo handledClassInfo = this.convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+            FieldInfo handledClassIdField = ClassInfoUtils.findSingleId(handledClassInfo);
+            TypeInfo handledIdType = handledClassIdField.getType();
+
+            String handlerFieldName = relationship.getHandlerFieldName();
+
+            String jpql =
+                    JPQLGenerator.getByAnotherEntityInRelationship(entityInfo.getName(), handledEntityName, handlerFieldName, handledClassIdField.getName());
+
+            // 创建方法
+            String methodName = this.nameConverter.daoMethodNameFindByAnotherID(handlerFieldName, handledClassIdField.getName());
+            Parameter idParameter = new Parameter().setTypeInfo(idField.getType()).setName("id");
+
+            MethodInfo queryMethod = new MethodInfo()
+                    .setReturnValueType(listReturnType)
+                    .addParameter(idParameter)
+                    .setName(methodName)
+                    .setDefineOnly(true)
+                    .addAnnotationInfo(SpringDataAnnotationFactory.query(jpql));
+            interfaceClass.addMethod(queryMethod);
+
+            if (converterConfig.isPagingEnabled()) {
+                MethodInfo queryMethodWithPage = new MethodInfo()
+                        .setReturnValueType(SpringDataTypeFactory.pageTypeWithGeneric(entityClass.getType()))
+                        .addParameter(idParameter)
+                        .addParameter(SpringDataParameterFactory.pageable())
+                        .setName(methodName)
+                        .setDefineOnly(true)
+                        .addAnnotationInfo(SpringDataAnnotationFactory.query(jpql));
+                interfaceClass.addMethod(queryMethodWithPage);
+            }
+        }
+    }
+
+    /**
+     * 处理双向关联关系
+     *
+     * @param interfaceClass 接口类信息
+     * @param entityInfo     实体类信息
+     */
+    private void bidirectionalRelationship(ClassInfo interfaceClass, EntityInfo entityInfo) {
+        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
+        ClassInfo entityClass = convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
+
+        for (ConvertDataContext.RelationshipHandler relationshipHandler : handlers) {
+            // 只有双向关系才会生成相应的方法，如果是单向的关联关系，直接跳过
+            String handledFieldName = relationshipHandler.getHandledFieldName();
+            if (!relationshipHandler.isBidirectional()) {
+                continue;
+            }
+
+            // 获得对方实体的类类元数据
+            ClassInfo handledEntityClass =
+                    convertDataContext.getClassByEntityAndType(relationshipHandler.getToBeHandled(), ConvertDataContext.TYPE_ENTITY_CLASS);
+
+            // 生成方法信息
+            MethodInfo methodInfo = new MethodInfo();
+            methodInfo.setDefineOnly(true);
+
+            // 生成返回值
+            TypeInfo returnType = null;
+            if (converterConfig.isPagingEnabled()) {
+                returnType = SpringDataTypeFactory.pageTypeWithGeneric(entityClass.getType());
+            } else {
+                returnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
+            }
+
+            methodInfo.setReturnValueType(returnType);
+
+            // 生成方法的名称
+            FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
+
+            String methodName = String.format("findBy%s%s",
+                    StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()),
+                    StringUtils.upperFirstLatter(handledIdField.getName()));
+            methodInfo.setName(methodName);
+
+            // 增加参数
+            Parameter idParameter = ParameterFactory.create(handledIdField.getType(), "id");
+            methodInfo.addParameter(idParameter);
+
+            if (converterConfig.isPagingEnabled()) {
+                Parameter pageable = ParameterFactory.create(SpringDataTypeFactory.pageable(), "pageable");
+                methodInfo.addParameter(pageable);
+            }
+
+            interfaceClass.addMethod(methodInfo);
+        }
+    }
+
+    /**
+     * 处理对外暴露查询条件的一些方法
+     *
+     * @param interfaceClass 接口类元数据
+     * @param entityInfo     实体信息
+     */
+    private void handleExposedFields(ClassInfo interfaceClass, EntityInfo entityInfo) {
+        ClassInfo entityClass = convertDataContext.getClassByEntityAndType(entityInfo.getName(), TYPE_ENTITY_CLASS);
+
+        TypeInfo listReturnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
+        Iterator<FieldInfo> infoIterator = entityClass.iterateFields();
+
+        while (infoIterator.hasNext()) {
+            FieldInfo fieldInfo = infoIterator.next();
+
+            AttributeInfo attribute = this.convertDataContext.getAttribute(entityClass, fieldInfo);
+            EntityRelationship relationship = this.convertDataContext.getRelationship(entityClass, fieldInfo);
+
+            if (attribute != null && !attribute.isPrimaryIdentifier() && attribute.isAsSelectCondition()) {
+                String methodName = "findBy" + StringUtils.upperFirstLatter(fieldInfo.getName());
+                Parameter parameter = ParameterFactory.create(fieldInfo.getType(), fieldInfo.getName());
+
+                MethodInfo queryMethodInfo = new MethodInfo()
+                        .setPublic()
+                        .setReturnValueType(listReturnType)
+                        .setName(methodName)
+                        .addParameter(parameter)
+                        .setDefineOnly(true);
+                interfaceClass.addMethod(queryMethodInfo);
+            }
+        }
+    }
 
     @Override
     public ClassInfo fromEntity(EntityInfo entityInfo) {
@@ -95,110 +242,13 @@ public class DefaultDAOConverter implements IDAOConverter {
                 .setInterface(true);
 
         // 2.2. 生成单向关联关系当中反向的关联查询
-        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
-        TypeInfo listReturnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
-
-        for (ConvertDataContext.RelationshipHandler relationship : handlers) {
-            // 判断是否为单向
-            String handledFieldName = relationship.getHandledFieldName();
-            if (handledFieldName != null && !"".equals(handledFieldName.trim())) {
-                continue;
-            }
-
-            // 寻找另外一方的实体
-            String handledEntityName = relationship.getToBeHandled();
-
-            ClassInfo handledClassInfo = this.convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
-            FieldInfo handledClassIdField = ClassInfoUtils.findSingleId(handledClassInfo);
-            TypeInfo handledIdType = handledClassIdField.getType();
-
-            String handlerFieldName = relationship.getHandlerFieldName();
-
-            String jpql =
-                    JPQLGenerator.getByAnotherEntityInRelationship(entityInfo.getName(), handledEntityName, handlerFieldName, handledClassIdField.getName());
-
-            // 创建方法
-            String methodName = this.nameConverter.daoMethodNameFindByAnotherID(handlerFieldName, handledClassIdField.getName());
-            Parameter idParameter = new Parameter().setTypeInfo(idType).setName("id");
-
-            MethodInfo queryMethod = new MethodInfo()
-                    .setReturnValueType(listReturnType)
-                    .addParameter(idParameter)
-                    .setName(methodName)
-                    .setDefineOnly(true)
-                    .addAnnotationInfo(SpringDataAnnotationFactory.query(jpql));
-
-            interfaceClass.addMethod(queryMethod);
-        }
+        createInverseQueryMethod(interfaceClass, entityInfo);
 
         // 2.3. 从方实体双向关系的配置
-        for (ConvertDataContext.RelationshipHandler relationshipHandler : handlers) {
-            // 只有双向关系才会生成相应的方法，如果是单向的关联关系，直接跳过
-            String handledFieldName = relationshipHandler.getHandledFieldName();
-            if (!relationshipHandler.isBidirectional()) {
-                continue;
-            }
-
-            // 获得对方实体的类类元数据
-            ClassInfo handledEntityClass =
-                    convertDataContext.getClassByEntityAndType(relationshipHandler.getToBeHandled(), ConvertDataContext.TYPE_ENTITY_CLASS);
-
-            // 生成方法信息
-            MethodInfo methodInfo = new MethodInfo();
-            methodInfo.setDefineOnly(true);
-
-            // 生成返回值
-            TypeInfo returnType = null;
-            if (converterConfig.isPagingEnabled()) {
-                returnType = SpringDataTypeFactory.pageTypeWithGeneric(entityClass.getType());
-            } else {
-                returnType = CollectionsTypeFactory.listWithGeneric(entityClass.getType());
-            }
-
-            methodInfo.setReturnValueType(returnType);
-
-            // 生成方法的名称
-            FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
-
-            String methodName = String.format("findBy%s%s",
-                    StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()),
-                    StringUtils.upperFirstLatter(handledIdField.getName()));
-            methodInfo.setName(methodName);
-
-            // 增加参数
-            Parameter idParameter = ParameterFactory.create(handledIdField.getType(), "id");
-            methodInfo.addParameter(idParameter);
-
-            if (converterConfig.isPagingEnabled()) {
-                Parameter pageable = ParameterFactory.create(SpringDataTypeFactory.pageable(), "pageable");
-                methodInfo.addParameter(pageable);
-            }
-
-            interfaceClass.addMethod(methodInfo);
-        }
+        bidirectionalRelationship(interfaceClass, entityInfo);
 
         // 2.4. 对于在属性信息当中配置好在数据库中会用于数据库查询条件的字段生成相应的方法
-        Iterator<FieldInfo> infoIterator = entityClass.iterateFields();
-
-        while (infoIterator.hasNext()) {
-            FieldInfo fieldInfo = infoIterator.next();
-
-            AttributeInfo attribute = this.convertDataContext.getAttribute(entityClass, fieldInfo);
-            EntityRelationship relationship = this.convertDataContext.getRelationship(entityClass, fieldInfo);
-
-            if (attribute != null && !attribute.isPrimaryIdentifier() && attribute.isAsSelectCondition()) {
-                String methodName = "findBy" + StringUtils.upperFirstLatter(fieldInfo.getName());
-                Parameter parameter = ParameterFactory.create(fieldInfo.getType(), fieldInfo.getName());
-
-                MethodInfo queryMethodInfo = new MethodInfo()
-                        .setPublic()
-                        .setReturnValueType(listReturnType)
-                        .setName(methodName)
-                        .addParameter(parameter)
-                        .setDefineOnly(true);
-                interfaceClass.addMethod(queryMethodInfo);
-            }
-        }
+        handleExposedFields(interfaceClass, entityInfo);
 
         return interfaceClass;
     }
