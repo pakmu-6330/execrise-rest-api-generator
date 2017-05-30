@@ -195,8 +195,7 @@ public class DefaultServiceConverter implements IServiceConverter {
         return new MethodInfo()
                 .setPrivate()
                 .setName(methodName)
-                .addParameter(ParameterFactory.create(idField.getType(), "id"))
-                .setRootInstruction(InstructionFactory.sequence(instructionList));
+                .addParameter(ParameterFactory.create(idField.getType(), "id"));
     }
 
     /**
