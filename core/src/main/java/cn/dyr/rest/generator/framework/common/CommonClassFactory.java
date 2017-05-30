@@ -5,11 +5,13 @@ import cn.dyr.rest.generator.converter.ConverterContext;
 import cn.dyr.rest.generator.framework.j2ee.ServletTypeFactory;
 import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.framework.jdk.JDKTypeFactory;
+import cn.dyr.rest.generator.framework.spring.SpringFrameworkExceptionTypeFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
 import cn.dyr.rest.generator.framework.spring.hateoas.SpringHATEOASTypeFactory;
 import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCAnnotationFactory;
 import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCConstant;
 import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCTypeFactory;
+import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.ConstructorMethodInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
@@ -161,6 +163,51 @@ public class CommonClassFactory {
     }
 
     /**
+     * 创建一个用于处理 DataIntegrityViolationException 异常的方法
+     *
+     * @return 用于处理这个异常信息的方法
+     */
+    private static MethodInfo handleDataIntegrityViolationException() {
+        // 创建返回值
+        TypeInfo returnType =
+                CollectionsTypeFactory.mapWithGeneric(TypeInfoFactory.stringType(), TypeInfoFactory.objectType());
+
+        // 创建方法名
+        String methodName = "handleDataIntegrityViolationException";
+
+        // 创建参数
+        TypeInfo requestType = ServletTypeFactory.httpServletRequest();
+        Parameter requestParameter = ParameterFactory.create(requestType, "request");
+
+        // 创建各种注解
+        AnnotationInfo exceptionHandler = SpringMVCAnnotationFactory.exceptionHandler(
+                SpringFrameworkExceptionTypeFactory.dataIntegrityViolationException());
+        AnnotationInfo responseStatus = SpringMVCAnnotationFactory.responseStatus(
+                SpringMVCConstant.HTTP_STATUS_MEMBER_BAD_REQUEST);
+        AnnotationInfo responseBody = SpringMVCAnnotationFactory.responseBody();
+
+        // 构造相应的指令
+        IValueExpression returnValueExpression =
+                ValueExpressionFactory.thisReference().invokeMethod("buildResponseMap", new Object[]{
+                        ValueExpressionFactory.stringExpression("failed to update due to reference"),
+                        ValueExpressionFactory.variable("request")
+                                .invokeMethod("getRequestURL")
+                                .invokeMethod("toString")
+                });
+        IInstruction returnInstruction = InstructionFactory.returnInstruction(returnValueExpression);
+
+        // 将方法各个元素拼凑成一个方法
+        return new MethodInfo()
+                .setReturnValueType(returnType)
+                .setName(methodName)
+                .addParameter(requestParameter)
+                .addAnnotationInfo(exceptionHandler)
+                .addAnnotationInfo(responseStatus)
+                .addAnnotationInfo(responseBody)
+                .setRootInstruction(returnInstruction);
+    }
+
+    /**
      * 创建一个用于全局异常处理的控制器增强类
      *
      * @param packageName 包名
@@ -178,6 +225,7 @@ public class CommonClassFactory {
         classInfo.addMethod(buildResponseMapMethod());
         classInfo.addMethod(handleDBConstraintException(
                 context.getCommonClass(ConverterContext.KEY_DB_CONSTRAINT_EXCEPTION).getType()));
+        classInfo.addMethod(handleDataIntegrityViolationException());
 
         return classInfo;
     }
