@@ -7,17 +7,20 @@ import cn.dyr.rest.generator.converter.ConverterInjectType;
 import cn.dyr.rest.generator.converter.DataInject;
 import cn.dyr.rest.generator.converter.DataInjectType;
 import cn.dyr.rest.generator.converter.name.INameConverter;
+import cn.dyr.rest.generator.entity.RelationshipType;
 import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
 import cn.dyr.rest.generator.java.meta.MethodInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
+import cn.dyr.rest.generator.java.meta.factory.ChoiceFlowBuilder;
 import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
+import com.sun.org.apache.bcel.internal.generic.IINC;
 import net.oschina.util.Inflector;
 
 import java.util.ArrayList;
@@ -26,11 +29,20 @@ import java.util.Objects;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_DAO_INTERFACE;
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
+import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.assignment;
+import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.emptyInstruction;
+import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.invoke;
+import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.returnInstruction;
+import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.sequence;
 import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.throwExceptionWithMessageParameter;
 import static cn.dyr.rest.generator.java.meta.factory.InstructionFactory.variableDeclaration;
 import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.greaterThan;
 import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.intExpression;
+import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.invokeConstructor;
+import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.logicalEqual;
 import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.logicalInequal;
+import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.nullExpression;
+import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.typeDefaultValueExpression;
 import static cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory.variable;
 
 /**
@@ -98,16 +110,15 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
                 relatedEntityInstanceVariable.invokeMethod(relatedIdGetter.getName()));
 
         // #5 级联保存关联对象
-        IInstruction cascadeSaveInstruction = InstructionFactory.invoke(
-                entityVariable, setterMethod.getName(), new Object[]{
-                        variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
-                                .invokeMethod("save", new Object[]{
-                                relatedEntityInstanceVariable
-                        })
-                });
+        IInstruction cascadeSaveInstruction = invoke(entityVariable, setterMethod.getName(), new Object[]{
+                variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
+                        .invokeMethod("save", new Object[]{
+                        relatedEntityInstanceVariable
+                })
+        });
 
         // #6 获得数据库中已有的关联对象
-        IInstruction getAndSetInstruction = InstructionFactory.invoke(entityVariable, setterMethod.getName(), new Object[]{
+        IInstruction getAndSetInstruction = invoke(entityVariable, setterMethod.getName(), new Object[]{
                 variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
                         .invokeMethod("findOne", new Object[]{
                         relatedEntityIdVariable
@@ -115,8 +126,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
         });
 
         // #4 判断关联对象的唯一标识符是否为默认值
-        IValueExpression relatedEntityIdIsDefault = ValueExpressionFactory.logicalEqual(
-                relatedEntityIdVariable,
+        IValueExpression relatedEntityIdIsDefault = logicalEqual(relatedEntityIdVariable,
                 ValueExpressionFactory.typeDefaultValueExpression(relatedIdGetter.getReturnValueType()));
         IInstruction saveOrGetInstruction = InstructionFactory.choiceBuilder(relatedEntityIdIsDefault, cascadeSaveInstruction)
                 .setElse(getAndSetInstruction).build();
@@ -183,7 +193,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
                 variable(singleClass).invokeMethod(idGetterMethod.getName()));
 
         // #7 级联保存关联对象
-        IInstruction cascadeSaveInstruction = InstructionFactory.invoke(
+        IInstruction cascadeSaveInstruction = invoke(
                 variable(newCollectionName), "add",
                 new Object[]{
                         variable(handledDAOName)
@@ -193,7 +203,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
                 });
 
         // #8 获得数据库当中的记录，添加到新的集合当中
-        IInstruction getExistsEntityInstruction = InstructionFactory.invoke(
+        IInstruction getExistsEntityInstruction = invoke(
                 variable(newCollectionName), "add",
                 new Object[]{
                         variable(handledDAOName)
@@ -204,7 +214,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #6 级联保存还是从数据库里面重新取对象的判断指令
         IValueExpression saveOrGetIfValueExpression =
-                ValueExpressionFactory.logicalEqual(variable(idName),
+                logicalEqual(variable(idName),
                         ValueExpressionFactory.typeDefaultValueExpression(idGetterMethod.getReturnValueType()));
         IInstruction saveOrGetInstruction =
                 InstructionFactory.choiceBuilder(saveOrGetIfValueExpression, cascadeSaveInstruction)
@@ -218,7 +228,7 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #9 将新的集合设置到本实体当中
         IInstruction setValueInstruction =
-                InstructionFactory.invoke(variable(entityVariable),
+                invoke(variable(entityVariable),
                         setterMethod.getName(), new Object[]{
                                 variable(newCollectionName)
                         });
@@ -347,5 +357,137 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
     @Override
     public IInstruction manyToManyHandledServiceDelete(ConvertDataContext.RelationshipHandler handler, String idVariableName) {
         return handleServiceDelete(handler, idVariableName);
+    }
+
+    @Override
+    public IInstruction handledEntityToManyCreatedInstruction(ConvertDataContext.RelationshipHandler handler,
+                                                              String idVariable, String handledEntityObjectVariable) {
+        // 判断是否为对多的关联关系
+        if (handler.getType() == RelationshipType.MANY_TO_ONE ||
+                handler.getType() == RelationshipType.ONE_TO_ONE) {
+            return null;
+        }
+
+        // 准备数据
+        // 关联关系维护方的各种类
+        String handlerEntityName = handler.getHandler();
+        ClassInfo handlerEntityClass = convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+        String handlerDAOFieldName = convertDataContext.getDAODefaultFieldName(handlerEntityName);
+        IValueExpression handlerDAOFieldValueExpression = ValueExpressionFactory.variable(handlerDAOFieldName);
+
+        String handlerFieldName = handler.getHandlerFieldName();
+        String handlerCollectionsVariableName = StringUtils.lowerFirstLatter(handlerFieldName);
+        IValueExpression handlerCollectionsValueExpression = variable(handlerCollectionsVariableName);
+        MethodInfo handlerFieldGetterMethod = handlerEntityClass.getterMethod(handlerFieldName);
+        MethodInfo handlerFieldSetterMethod = handlerEntityClass.setterMethod(handlerFieldName);
+
+        // 维护方实体对象变量名
+        String handlerEntityVariableName = StringUtils.lowerFirstLatter(handlerEntityClass.getClassName());
+        IValueExpression handlerEntityValueExpression = variable(handlerEntityVariableName);
+
+        // 关联关系被维护方的各种类
+        String handledEntityName = handler.getToBeHandled();
+        ClassInfo handledEntityClass = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        FieldInfo handledEntityIdField = ClassInfoUtils.findSingleId(handledEntityClass);
+        MethodInfo handledEntityIdSetterMethod = handledEntityClass.setterMethod(handledEntityIdField.getName());
+        String handledEntityDAOFieldName = convertDataContext.getDAODefaultFieldName(handledEntityName);
+        IValueExpression handledEntityObjectVariableValueExpression = variable(handledEntityObjectVariable);
+
+        // 一个用于保存已经生成的的指令的列表
+        List<IInstruction> instructionList = new ArrayList<>();
+        List<IInstruction> choiceYesList = new ArrayList<>();
+        List<IInstruction> choiceNoList = new ArrayList<>();
+
+        // #1 寻找关联维护方对象
+        {
+            IValueExpression findOneValue = handlerDAOFieldValueExpression.invokeMethod(
+                    "findOne", new Object[]{ValueExpressionFactory.variable(idVariable)});
+            IInstruction findHandlerEntityInstruction = InstructionFactory.variableDeclaration(
+                    handlerEntityClass.getType(), handlerEntityVariableName, findOneValue);
+            instructionList.add(findHandlerEntityInstruction);
+        }
+
+        // #3 找不到关联维护方的实体对象则直接返回 null
+        {
+            IInstruction nullInstruction = returnInstruction(nullExpression());
+            choiceYesList.add(nullInstruction);
+        }
+
+        // #4 将被维护实体对象的唯一标识符设置为默认值
+        {
+            IInstruction setDefaultIdInstruction = invoke(handledEntityObjectVariableValueExpression,
+                    handledEntityIdSetterMethod.getName(),
+                    typeDefaultValueExpression(handledEntityIdField.getType()));
+            choiceNoList.add(setDefaultIdInstruction);
+        }
+
+        // #5 将被维护实体对象保存到数据库
+        {
+            IInstruction saveHandledObjectInstruction = invoke(variable(handledEntityDAOFieldName),
+                    "save", handledEntityObjectVariableValueExpression);
+            choiceNoList.add(saveHandledObjectInstruction);
+        }
+
+        // #6 获得关联方与被维护实体对象之间的集合类
+        {
+            IValueExpression value = handlerEntityValueExpression.invokeMethod(handlerFieldGetterMethod.getName());
+            IInstruction getCollectionsInstruction = variableDeclaration(
+                    CollectionsTypeFactory.listWithGeneric(handledEntityClass.getType()),
+                    handlerCollectionsVariableName, value);
+            choiceNoList.add(emptyInstruction());
+            choiceNoList.add(getCollectionsInstruction);
+        }
+
+        // #7 确保集合不为空的操作指令
+        {
+            // 判断条件
+            IValueExpression condition = logicalEqual(handlerCollectionsValueExpression, nullExpression());
+
+            // #8 创建一个新的集合类
+            IInstruction assignmentInstruction = assignment(handlerCollectionsVariableName,
+                    invokeConstructor(CollectionsTypeFactory.arrayListWithGeneric(handledEntityClass.getType())));
+
+            // #9 将这个新的集集合类设置到关联类实体对象中
+            IInstruction setCollectionInstruction = invoke(handlerEntityValueExpression,
+                    handlerFieldSetterMethod.getName(), new Object[]{handlerCollectionsValueExpression});
+
+            ChoiceFlowBuilder builder = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, sequence(assignmentInstruction, setCollectionInstruction));
+            IInstruction targetInstruction = builder.build();
+            choiceNoList.add(targetInstruction);
+        }
+
+        // #10 将被维护方实体添加到集合类中
+        {
+            IInstruction addInstruction = invoke(handlerCollectionsValueExpression, "add",
+                    new Object[]{handledEntityObjectVariableValueExpression});
+            choiceNoList.add(emptyInstruction());
+            choiceNoList.add(addInstruction);
+        }
+
+        // #11 更新维护方的实体对象
+        {
+            IInstruction handlerSaveInstruction = invoke(handlerDAOFieldValueExpression, "save", handlerEntityValueExpression);
+            choiceNoList.add(handlerSaveInstruction);
+        }
+
+        // #2 判断维护方实体是否存在
+        {
+            IValueExpression condition = logicalEqual(handlerEntityValueExpression, nullExpression());
+            ChoiceFlowBuilder builder = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, sequence(choiceYesList))
+                    .setElse(sequence(choiceNoList));
+            IInstruction ifInstruction = builder.build();
+            instructionList.add(ifInstruction);
+        }
+
+        // #12 返回被关联实体对象
+        {
+            IInstruction returnInstruction = returnInstruction(handledEntityObjectVariableValueExpression);
+            instructionList.add(emptyInstruction());
+            instructionList.add(returnInstruction);
+        }
+
+        return sequence(instructionList);
     }
 }

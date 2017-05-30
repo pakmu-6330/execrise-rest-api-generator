@@ -794,6 +794,8 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
     @Override
     public MethodInfo getRelatedResourcesDeleteForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+
+
         return null;
     }
 }

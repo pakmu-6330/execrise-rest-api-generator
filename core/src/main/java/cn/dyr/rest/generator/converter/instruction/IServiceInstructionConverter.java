@@ -83,4 +83,15 @@ public interface IServiceInstructionConverter extends IConverter {
      * @return 处理多对多关联关系删除的操作指令
      */
     IInstruction manyToManyHandledServiceDelete(ConvertDataContext.RelationshipHandler handler, String idVariableName);
+
+    /**
+     * 用于在一方中所维护的关联关系中创建一个多方对象
+     *
+     * @param handler        关联关系信息
+     * @param idVariable     一方对象唯一标识符变量名
+     * @param entityVariable 多方对象对象变量名
+     * @return
+     */
+    IInstruction handledEntityToManyCreatedInstruction(ConvertDataContext.RelationshipHandler handler,
+                                                       String idVariable, String entityVariable);
 }
