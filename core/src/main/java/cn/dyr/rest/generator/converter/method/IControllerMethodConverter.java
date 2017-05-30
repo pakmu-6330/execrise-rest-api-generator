@@ -84,7 +84,7 @@ public interface IControllerMethodConverter extends IConverter {
                                                    ConvertDataContext.RelationshipHandler relationshipHandler);
 
     /**
-     * 针对被控方 Controller 创建多对一（主控方为多方）的相应方法
+     * 针对被控方 Controller 创建多对一（主控方为多方）对象的相应方法
      *
      * @param entityName          实体名称
      * @param relationshipHandler 关联关系数据
@@ -92,4 +92,14 @@ public interface IControllerMethodConverter extends IConverter {
      */
     MethodInfo getRelatedManyToOneCreateForHandled(String entityName,
                                                    ConvertDataContext.RelationshipHandler relationshipHandler);
+
+    /**
+     * 针对被控方 Controller 获得多对一（主控方为多方）对象列表的相应方法
+     *
+     * @param entityName          实体名称
+     * @param relationshipHandler 关联关系数据
+     * @return 如果符合创建 Controller 方法的条件，则返回相应的 Controller 方法，否则返回 null
+     */
+    MethodInfo getRelatedManyToOneGetForHandled(String entityName,
+                                                ConvertDataContext.RelationshipHandler relationshipHandler);
 }

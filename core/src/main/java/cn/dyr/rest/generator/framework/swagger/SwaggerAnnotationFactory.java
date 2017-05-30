@@ -6,6 +6,7 @@ import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameter;
 import cn.dyr.rest.generator.java.meta.parameters.annotation.AnnotationParameterFactory;
+import cn.dyr.rest.generator.util.StringUtils;
 
 /**
  * Swagger 相关的注解工厂
@@ -95,12 +96,18 @@ public class SwaggerAnnotationFactory {
      */
     public static AnnotationInfo implicitPathParam(String name, String type, String value, String defaultValue) {
         TypeInfo implicitParam = TypeInfoFactory.fromClass(SwaggerTypeConstant.API_IMPLICIT_PARAM);
-        return new AnnotationInfo().setType(implicitParam)
-                .addParameter("name", AnnotationParameterFactory.stringParameter(name))
+        AnnotationInfo retAnnotation = new AnnotationInfo().setType(implicitParam);
+
+        retAnnotation.addParameter("name", AnnotationParameterFactory.stringParameter(name))
                 .addParameter("dataType", AnnotationParameterFactory.stringParameter(type))
                 .addParameter("paramType", AnnotationParameterFactory.stringParameter("path"))
-                .addParameter("value", AnnotationParameterFactory.stringParameter(value))
-                .addParameter("defaultValue", AnnotationParameterFactory.stringParameter(defaultValue));
+                .addParameter("value", AnnotationParameterFactory.stringParameter(value));
+
+        if (!StringUtils.isStringEmpty(defaultValue)) {
+            retAnnotation.addParameter("defaultValue", AnnotationParameterFactory.stringParameter(defaultValue));
+        }
+
+        return retAnnotation;
     }
 
     /**

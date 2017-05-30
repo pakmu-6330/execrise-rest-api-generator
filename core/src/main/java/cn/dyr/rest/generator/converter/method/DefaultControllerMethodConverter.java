@@ -928,7 +928,7 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
         AnnotationInfo apiOperation = SwaggerAnnotationFactory.apiOperation(
                 DocumentGeneratorUtils.createSthInSpecifiedSth(
-                        handlerEntity.getDescription(), relationshipHandler.getHandledFieldDescription()));
+                        handlerEntity.getDescription(), relationshipHandler.getHandlerFieldDescription()));
 
         AnnotationInfo notFoundAnnotation = SwaggerAnnotationFactory.createNotFoundResponse(
                 DocumentGeneratorUtils.notFound(handledEntity.getDescription()));
@@ -994,6 +994,150 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
                 .addAnnotationInfo(postMapping)
                 .addAnnotationInfo(apiOperation)
                 .addAnnotationInfo(responses)
+                .setRootInstruction(InstructionFactory.sequence(instructionList));
+    }
+
+    @Override
+    public MethodInfo getRelatedManyToOneGetForHandled(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+        // 判断被控方是否存在往主控方的属性字段
+        if (StringUtils.isStringEmpty(relationshipHandler.getHandledFieldName())) {
+            return null;
+        }
+
+        // 判断是否为多对一的关联关系
+        if (relationshipHandler.getType() != RelationshipType.MANY_TO_ONE) {
+            return null;
+        }
+
+        // 一些通用类信息
+        ClassInfo pagedResourceClass = context.getCommonClass(ConverterContext.KEY_PAGED_RESOURCE);
+
+        // 这里准备维护方的信息
+        String handlerEntityName = relationshipHandler.getHandler();
+        ClassInfo handlerEntityClass = context.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handlerResourceClass = context.getClassByEntityAndType(handlerEntityName, TYPE_RESOURCE_CLASS);
+
+        String handlerAssemblerFieldName = context.getAssemblerDefaultFieldName(handlerEntityName);
+        String handlerServiceFieldName = context.getServiceDefaultFieldName(handlerEntityName);
+
+        EntityInfo handlerEntity = context.getEntityByName(handlerEntityName);
+
+        // 这里准备被维护方的信息
+        String handledEntityName = relationshipHandler.getToBeHandled();
+        ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+
+        FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
+
+        EntityInfo handledEntity = context.getEntityByName(handledEntityName);
+
+        // Service 类的方法名
+        String serviceMethodName = String.format("findBy%s%s",
+                StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()),
+                StringUtils.upperFirstLatter(handledIdField.getName()));
+
+        // 最终返回的方法对象
+        MethodInfo methodInfo = new MethodInfo();
+
+        // 准备方法的返回值
+        TypeInfo returnType;
+        if (converterConfig.isPagingEnabled()) {
+            returnType = TypeInfoFactory.wrapGenerics(pagedResourceClass.getType(), handlerResourceClass.getType());
+            returnType = SpringMVCTypeFactory.httpEntity(returnType);
+        } else {
+            returnType = CollectionsTypeFactory.listWithGeneric(handlerResourceClass.getType());
+        }
+
+        methodInfo.setReturnValueType(returnType);
+
+        // 方法名称
+        String methodName = String.format("get%sIn%s",
+                StringUtils.upperFirstLatter(relationshipHandler.getHandledFieldName()),
+                StringUtils.upperFirstLatter(handledEntityClass.getClassName()));
+        methodInfo.setName(methodName);
+
+        // 添加参数
+        Parameter idParameter = ParameterFactory.create(handledIdField.getType(), "id");
+        idParameter.addAnnotationInfo(SpringMVCAnnotationFactory.pathVariable("id"));
+        methodInfo.addParameter(idParameter);
+
+        Parameter pageableParameter = SpringDataParameterFactory.pageable(converterConfig.getDefaultPageSize());
+        methodInfo.addParameter(pageableParameter);
+
+        // 创建相应的注解
+        // SpringMVC 路由注解
+        AnnotationInfo getMapping = SpringMVCAnnotationFactory.getMapping(
+                String.format("/{id}/%s", relationshipHandler.getHandledFieldName()));
+        methodInfo.addAnnotationInfo(getMapping);
+
+        // 分页参数注解
+        AnnotationInfo pageAnnotation = SwaggerAnnotationFactory.springDataPageablePageAnnotation();
+        AnnotationInfo sizeAnnotation = SwaggerAnnotationFactory.springDataPageableSizeAnnotation(converterConfig.getDefaultPageSize());
+        AnnotationInfo idAnnotation = SwaggerAnnotationFactory.implicitPathParam("id", "long", "唯一标识符", "");
+        AnnotationInfo params = SwaggerAnnotationFactory.implicitParams(pageAnnotation, sizeAnnotation, idAnnotation);
+        methodInfo.addAnnotationInfo(params);
+
+        // ApiOperation 注解
+        AnnotationInfo apiOperation = SwaggerAnnotationFactory.apiOperation(
+                DocumentGeneratorUtils.getRelatedEntityInfo(handledEntity.getDescription(), handlerEntity.getDescription()));
+        methodInfo.addAnnotationInfo(apiOperation);
+
+        // ApiResponses 注解
+        AnnotationInfo okResponse = SwaggerAnnotationFactory.createHttpOkResponse(
+                DocumentGeneratorUtils.listGotten(handlerEntity.getDescription()));
+        AnnotationInfo apiResponses = SwaggerAnnotationFactory.apiResponses(okResponse);
+        methodInfo.addAnnotationInfo(apiResponses);
+
+        // 生成相应的指令
+        String pagedEntityName = StringUtils.lowerFirstLatter(relationshipHandler.getHandledFieldName());
+        String pagedResourceName = "paged" + StringUtils.upperFirstLatter(pagedEntityName);
+        TypeInfo pagedEntityType = SpringDataTypeFactory.pageTypeWithGeneric(handlerEntityClass.getType());
+        TypeInfo pagedResourceType = SpringDataTypeFactory.pageTypeWithGeneric(handlerResourceClass.getType());
+        TypeInfo pagedResourceWrappedType = TypeInfoFactory.wrapGenerics(pagedResourceClass.getType(), handlerResourceClass.getType());
+
+        List<IInstruction> instructionList = new ArrayList<>();
+
+        // #1 调用业务类获得数据
+        {
+            IInstruction serviceInvocationInstruction =
+                    InstructionFactory.variableDeclaration(pagedEntityType, pagedEntityName,
+                            ValueExpressionFactory.variable(handlerServiceFieldName)
+                                    .invokeMethod(serviceMethodName, new Object[]{
+                                            ValueExpressionFactory.variable(idParameter.getName()),
+                                            ValueExpressionFactory.variable(pageableParameter.getName())
+                                    }));
+            instructionList.add(serviceInvocationInstruction);
+        }
+
+        // #2 将普通实体类转换成资源类
+        {
+            IInstruction convertInstruction = InstructionFactory.variableDeclaration(pagedResourceType, pagedResourceName,
+                    ValueExpressionFactory.variable(pagedEntityName)
+                            .invokeMethod("map", ValueExpressionFactory.variable(handlerAssemblerFieldName)));
+            instructionList.add(convertInstruction);
+        }
+
+        // #3 使用 PagedResource 类进行简单的包装
+        {
+            IInstruction wrapInstruction = InstructionFactory.variableDeclaration(pagedResourceWrappedType, "pagedResource",
+                    ValueExpressionFactory.invokeConstructor(pagedResourceWrappedType, new Object[]{
+                            ValueExpressionFactory.variable(pagedResourceName)
+                    }));
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(wrapInstruction);
+        }
+
+        // #4 将得到的结果进行返回
+        {
+            IValueExpression returnValue = ValueExpressionFactory
+                    .invokeConstructor(SpringMVCTypeFactory.responseEntity(pagedResourceWrappedType), new Object[]{
+                            ValueExpressionFactory.variable("pagedResource"),
+                            SpringMVCValueExpressionFactory.httpStatusOK()
+                    });
+            IInstruction returnInstruction = InstructionFactory.returnInstruction(returnValue);
+            instructionList.add(returnInstruction);
+        }
+
+        return methodInfo
                 .setRootInstruction(InstructionFactory.sequence(instructionList));
     }
 }

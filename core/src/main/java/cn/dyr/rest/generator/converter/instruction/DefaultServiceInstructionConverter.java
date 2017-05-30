@@ -1,6 +1,7 @@
 package cn.dyr.rest.generator.converter.instruction;
 
 import cn.dyr.rest.generator.converter.ConvertDataContext;
+import cn.dyr.rest.generator.converter.ConverterConfig;
 import cn.dyr.rest.generator.converter.ConverterContext;
 import cn.dyr.rest.generator.converter.ConverterInject;
 import cn.dyr.rest.generator.converter.ConverterInjectType;
@@ -55,6 +56,9 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
     @DataInject(DataInjectType.DATA_CONTEXT)
     private ConvertDataContext convertDataContext;
+
+    @DataInject(DataInjectType.CONFIG)
+    private ConverterConfig converterConfig;
 
     @ConverterInject(ConverterInjectType.NAME)
     private INameConverter nameConverter;

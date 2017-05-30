@@ -22,8 +22,10 @@ import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ASSEMBLER_CLASS;
@@ -134,20 +136,40 @@ public class DefaultControllerConverter implements IControllerConverter {
      * @param entityInfo 这个 Service 类相关的实体信息
      */
     private void generateRelatedServiceField(ClassInfo classInfo, EntityInfo entityInfo) {
+        Map<String, Object> repeatFreeMap = new HashMap<>();
+
         // 本实体维护的关系对方实体对应的 Service 类字段
         List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
-        if (handlers != null) {
+        if (handlers != null && handlers.size() > 0) {
             for (ConvertDataContext.RelationshipHandler handler : handlers) {
                 String handledEntityName = handler.getToBeHandled();
 
-                ClassInfo serviceInterface = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_SERVICE_INTERFACE);
-                FieldInfo serviceField = new FieldInfo()
-                        .setPrivate()
-                        .setType(serviceInterface.getType())
-                        .setName(convertDataContext.getServiceDefaultFieldName(handledEntityName))
-                        .addAnnotation(SpringFrameworkAnnotationFactory.autowired());
-                classInfo.addField(serviceField);
+                importServiceField(classInfo, repeatFreeMap, handledEntityName);
             }
+        }
+
+        // 其他实体维护着本实体关联关系相应的 Service 类字段
+        List<ConvertDataContext.RelationshipHandler> handled = convertDataContext.findByHandled(entityInfo.getName());
+        if (handled != null && handled.size() > 0) {
+            for (ConvertDataContext.RelationshipHandler handler : handled) {
+                String handlerEntityName = handler.getHandler();
+
+                importServiceField(classInfo, repeatFreeMap, handlerEntityName);
+            }
+        }
+    }
+
+    private void importServiceField(ClassInfo classInfo, Map<String, Object> repeatFreeMap, String entityName) {
+        if (repeatFreeMap.get(entityName) == null) {
+            ClassInfo serviceInterface = convertDataContext.getClassByEntityAndType(entityName, TYPE_SERVICE_INTERFACE);
+            FieldInfo serviceField = new FieldInfo()
+                    .setPrivate()
+                    .setType(serviceInterface.getType())
+                    .setName(convertDataContext.getServiceDefaultFieldName(entityName))
+                    .addAnnotation(SpringFrameworkAnnotationFactory.autowired());
+            classInfo.addField(serviceField);
+
+            repeatFreeMap.put(entityName, new Object());
         }
     }
 
@@ -216,6 +238,11 @@ public class DefaultControllerConverter implements IControllerConverter {
             MethodInfo methodInfo = this.controllerMethodConverter.getRelatedManyToOneCreateForHandled(entityInfo.getName(), handler);
             if (methodInfo != null) {
                 controllerClass.addMethod(methodInfo);
+            }
+
+            MethodInfo getMethod = this.controllerMethodConverter.getRelatedManyToOneGetForHandled(entityInfo.getName(), handler);
+            if (getMethod != null) {
+                controllerClass.addMethod(getMethod);
             }
         }
 
