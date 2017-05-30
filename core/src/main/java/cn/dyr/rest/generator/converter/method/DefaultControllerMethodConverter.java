@@ -23,6 +23,7 @@ import cn.dyr.rest.generator.java.meta.FieldInfo;
 import cn.dyr.rest.generator.java.meta.MethodInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
 import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
+import cn.dyr.rest.generator.java.meta.factory.ParameterFactory;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
@@ -32,6 +33,7 @@ import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
+import javax.print.Doc;
 import java.util.Objects;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
@@ -738,14 +740,56 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         String handledEntityName = relationshipHandler.getToBeHandled();
         ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
         ClassInfo handledResourceClass = context.getClassByEntityAndType(handledEntityName, TYPE_RESOURCE_CLASS);
+        String handlerFieldName = relationshipHandler.getHandlerFieldName();
 
         // 获得本实体的信息
         ClassInfo thisEntityClass = context.getClassByEntityAndType(entityName, TYPE_ENTITY_CLASS);
+        EntityInfo thisEntity = context.getEntityByName(entityName);
         FieldInfo thisEntityIdField = ClassInfoUtils.findSingleId(thisEntityClass);
 
         // 创建相应的注解信息
+        // SpringMVC 路由注解
+        String routeURI = String.format("/{id}/%s", handlerFieldName);
+        AnnotationInfo postMappingAnnotation = SpringMVCAnnotationFactory.postMapping(routeURI);
 
-        return null;
+        // Swagger ApiOperation 注解
+        AnnotationInfo apiOperationAnnotation =
+                SwaggerAnnotationFactory.apiOperation(DocumentGeneratorUtils.createSthInSpecifiedSth(
+                        relationshipHandler.getHandlerFieldDescription(), thisEntity.getDescription()));
+
+        // Swagger Api Responses 注解
+        AnnotationInfo responsesAnnotation = SwaggerAnnotationFactory.apiResponses(
+                SwaggerAnnotationFactory.createHttpCreatedResponse(
+                        DocumentGeneratorUtils.createdSuccess(relationshipHandler.getHandlerFieldDescription())),
+                SwaggerAnnotationFactory.createNotFoundResponse(
+                        DocumentGeneratorUtils.notFound(thisEntity.getDescription()))
+        );
+
+        // 创建方法的返回值
+        TypeInfo returnType = SpringMVCTypeFactory.httpEntity(handledResourceClass.getType());
+
+        // 方法名
+        String methodName = String.format("create%s", StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()));
+
+        // 方法的参数
+        Parameter idParameter = ParameterFactory.create(thisEntityIdField.getType(), "id");
+        idParameter.addAnnotationInfo(SpringMVCAnnotationFactory.pathVariable("id"));
+
+        Parameter bodyParameter = ParameterFactory.create(handledEntityClass.getType(), relationshipHandler.getHandlerFieldName());
+        bodyParameter.addAnnotationInfo(SpringMVCAnnotationFactory.requestBody());
+
+        // # 临时创建返回 null 的指令
+        IInstruction nullReturnInstruction = InstructionFactory.returnInstruction(ValueExpressionFactory.nullExpression());
+
+        return new MethodInfo()
+                .setName(methodName)
+                .setReturnValueType(returnType)
+                .addParameter(idParameter)
+                .addParameter(bodyParameter)
+                .addAnnotationInfo(apiOperationAnnotation)
+                .addAnnotationInfo(postMappingAnnotation)
+                .addAnnotationInfo(responsesAnnotation)
+                .setRootInstruction(nullReturnInstruction);
     }
 
     @Override

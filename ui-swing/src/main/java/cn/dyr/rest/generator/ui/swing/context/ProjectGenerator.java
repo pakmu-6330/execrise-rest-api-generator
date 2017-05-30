@@ -154,7 +154,9 @@ public class ProjectGenerator {
         retValue.setEndB(entityInfoB);
 
         retValue.setEndAAttributeName(relationshipModel.getEndAAttributeName());
+        retValue.setEndAAttributeDescription(relationshipModel.getEndAAttributeDescription());
         retValue.setEndBAttributeName(relationshipModel.getEndBAttributeName());
+        retValue.setEndBAttributeDescription(relationshipModel.getEndBAttributeDescription());
 
         if (entityModelHandler == entityModelA) {
             retValue.setRelationHandler(entityInfoA);

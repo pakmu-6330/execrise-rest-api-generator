@@ -69,6 +69,16 @@ public class DocumentGeneratorUtils {
     }
 
     /**
+     * 返回成功创建了一个新对象的说明文字
+     *
+     * @param entityName 实体文字
+     * @return 对象创建成功的接口说明文字
+     */
+    public static String createdSuccess(String entityName) {
+        return String.format("成功了创建一个%s", entityName);
+    }
+
+    /**
      * 创建保存或者创建实体对象的接口说明文字
      *
      * @param entityName 进行操作的实体对象名
@@ -127,5 +137,16 @@ public class DocumentGeneratorUtils {
      */
     public static String getRelatedEntityExists(String entityName) {
         return String.format("这个%s被其他对象引用，不能删除", entityName);
+    }
+
+    /**
+     * 获得在某个对象持有的另外一方对象的集合中添加一个对象
+     *
+     * @param item       要添加的对象
+     * @param parentItem 持有这个对象集合的对象
+     * @return 对应的说明文字
+     */
+    public static String createSthInSpecifiedSth(String item, String parentItem) {
+        return String.format("在指定的%s中创建一个%s", parentItem, item);
     }
 }
