@@ -9,7 +9,6 @@ import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.RelationshipType;
 import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
-import cn.dyr.rest.generator.framework.jdk.CollectionsValueExpressionFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataParameterFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataTypeFactory;
 import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCAnnotationFactory;
@@ -22,6 +21,7 @@ import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
 import cn.dyr.rest.generator.java.meta.MethodInfo;
 import cn.dyr.rest.generator.java.meta.TypeInfo;
+import cn.dyr.rest.generator.java.meta.factory.ChoiceFlowBuilder;
 import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
 import cn.dyr.rest.generator.java.meta.factory.ParameterFactory;
 import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
@@ -33,7 +33,8 @@ import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
-import javax.print.Doc;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_ENTITY_CLASS;
@@ -729,6 +730,79 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         return info.addAnnotationInfo(apiOperation).addAnnotationInfo(responses);
     }
 
+    private IInstruction createInstructionForGetRelatedResourcesCreateForHandler(
+            String entityName, ConvertDataContext.RelationshipHandler handler) {
+        String handlerEntityName = handler.getHandler();
+        ClassInfo handlerEntityClass = context.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+
+        String handledEntityName = handler.getToBeHandled();
+        ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handledResourceClass = context.getClassByEntityAndType(handledEntityName, TYPE_RESOURCE_CLASS);
+
+        String serviceFieldName = context.getServiceDefaultFieldName(entityName);
+
+        String newEntityObjectName = String.format("new%s", StringUtils.upperFirstLatter(handledEntityClass.getClassName()));
+        IValueExpression newEntityObjectValueExpression = ValueExpressionFactory.variable(newEntityObjectName);
+
+        String handledEntityObjectForParameter = StringUtils.lowerFirstLatter(handledEntityClass.getClassName());
+        String handledResourceAssemblerFieldName = context.getAssemblerDefaultFieldName(handledEntityName);
+
+        List<IInstruction> instructionList = new ArrayList<>();
+
+        // #1 调用业务类的方法指令
+        {
+            // 业务类的方法名
+            String serviceMethodName = String.format("create%sIn%s",
+                    StringUtils.upperFirstLatter(handler.getHandlerFieldName()),
+                    StringUtils.upperFirstLatter(handlerEntityClass.getClassName()));
+            IInstruction serviceInvocationInstruction =
+                    InstructionFactory.variableDeclaration(handledEntityClass.getType(), newEntityObjectName,
+                            ValueExpressionFactory.variable(serviceFieldName).invokeMethod(serviceMethodName, new Object[]{
+                                    ValueExpressionFactory.variable("id"),
+                                    ValueExpressionFactory.variable(handledEntityObjectForParameter)
+                            }));
+            instructionList.add(serviceInvocationInstruction);
+        }
+
+        // #2 根据方法的返回值判断是否添加成功
+        {
+            // 判断是否操作成功的条件
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(
+                    newEntityObjectValueExpression, ValueExpressionFactory.nullExpression());
+
+            // #3 如果没有执行成功，则创建一个没有任何内容的实体对象
+            IInstruction createEmptyInstruction = InstructionFactory.assignment(
+                    newEntityObjectName, ValueExpressionFactory.invokeConstructor(handledEntityClass.getType()));
+
+            // #4 返回这个没有任何内容的实体对象并返回 404 响应码
+            IValueExpression toResourceMethodValue = ValueExpressionFactory.variable(handledResourceAssemblerFieldName)
+                    .invokeMethod("toResource", newEntityObjectValueExpression);
+
+            IValueExpression notFoundReturnValue = ValueExpressionFactory.invokeConstructor(
+                    SpringMVCTypeFactory.responseEntity(handledResourceClass.getType()), new Object[]{
+                            toResourceMethodValue,
+                            SpringMVCValueExpressionFactory.httpStatusNotFound()
+                    });
+            IInstruction notFoundReturnInstruction = InstructionFactory.returnInstruction(notFoundReturnValue);
+
+            // #5 返回已经添加到数据库当中的实体信息对象，并返回 201 的状态码
+            IValueExpression successReturnValue = ValueExpressionFactory.invokeConstructor(
+                    SpringMVCTypeFactory.responseEntity(handledResourceClass.getType()), new Object[]{
+                            toResourceMethodValue,
+                            SpringMVCValueExpressionFactory.httpStatusCreated()
+                    });
+            IInstruction successReturnInstruction = InstructionFactory.returnInstruction(successReturnValue);
+
+            ChoiceFlowBuilder builder = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, InstructionFactory.sequence(createEmptyInstruction, notFoundReturnInstruction))
+                    .setElse(successReturnInstruction);
+            IInstruction ifInstruction = builder.build();
+            instructionList.add(ifInstruction);
+        }
+
+        return InstructionFactory.sequence(instructionList);
+    }
+
     @Override
     public MethodInfo getRelatedResourcesCreateForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
         if (relationshipHandler.getType() == RelationshipType.ONE_TO_ONE ||
@@ -775,11 +849,11 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         Parameter idParameter = ParameterFactory.create(thisEntityIdField.getType(), "id");
         idParameter.addAnnotationInfo(SpringMVCAnnotationFactory.pathVariable("id"));
 
-        Parameter bodyParameter = ParameterFactory.create(handledEntityClass.getType(), relationshipHandler.getHandlerFieldName());
+        Parameter bodyParameter = ParameterFactory.create(handledEntityClass.getType(), StringUtils.lowerFirstLatter(handledEntityClass.getClassName()));
         bodyParameter.addAnnotationInfo(SpringMVCAnnotationFactory.requestBody());
 
         // # 临时创建返回 null 的指令
-        IInstruction nullReturnInstruction = InstructionFactory.returnInstruction(ValueExpressionFactory.nullExpression());
+        IInstruction instruction = createInstructionForGetRelatedResourcesCreateForHandler(entityName, relationshipHandler);
 
         return new MethodInfo()
                 .setName(methodName)
@@ -789,7 +863,7 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
                 .addAnnotationInfo(apiOperationAnnotation)
                 .addAnnotationInfo(postMappingAnnotation)
                 .addAnnotationInfo(responsesAnnotation)
-                .setRootInstruction(nullReturnInstruction);
+                .setRootInstruction(instruction);
     }
 
     @Override
