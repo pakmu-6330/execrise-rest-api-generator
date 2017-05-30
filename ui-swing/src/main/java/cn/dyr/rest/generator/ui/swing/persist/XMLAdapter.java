@@ -79,7 +79,9 @@ public class XMLAdapter {
             relationshipModel.setType(relationship.getType());
             relationshipModel.setDirection(relationship.getDirection());
             relationshipModel.setEndAAttributeName(relationship.getEndAAttributeName());
+            relationshipModel.setEndAAttributeDescription(relationship.getEndAAttributeDescription());
             relationshipModel.setEndBAttributeName(relationship.getEndBAttributeName());
+            relationshipModel.setEndBAttributeDescription(relationship.getEndBAttributeDescription());
 
             // 相应关系的转换
             EntityModel entityA = entityModelMapByXmlId.get(relationship.getEntityA());
@@ -152,6 +154,8 @@ public class XMLAdapter {
             relationship.setDirection(relationshipModel.getDirection());
             relationship.setEndAAttributeName(relationshipModel.getEndAAttributeName());
             relationship.setEndBAttributeName(relationshipModel.getEndBAttributeName());
+            relationship.setEndAAttributeDescription(relationshipModel.getEndAAttributeDescription());
+            relationship.setEndBAttributeDescription(relationshipModel.getEndBAttributeDescription());
 
             // 寻找关联双方的 id
             String aId = entityModelIdToFileId.get(relationshipModel.getEntityModelA().getId());

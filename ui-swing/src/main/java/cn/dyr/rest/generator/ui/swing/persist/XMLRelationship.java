@@ -13,7 +13,9 @@ import java.util.UUID;
  */
 @XmlRootElement
 @XmlType(name = "relationship", propOrder = {
-        "id", "name", "entityA", "entityB", "handler", "type", "direction", "endAAttributeName", "endBAttributeName"
+        "id", "name", "entityA", "entityB", "handler",
+        "type", "direction", "endAAttributeName", "endAAttributeDescription",
+        "endBAttributeName", "endBAttributeDescription"
 })
 public class XMLRelationship {
 
@@ -26,7 +28,9 @@ public class XMLRelationship {
     private int type;
     private int direction;
     private String endAAttributeName;
+    private String endAAttributeDescription;
     private String endBAttributeName;
+    private String endBAttributeDescription;
 
     public XMLRelationship() {
         this.id = UUID.randomUUID().toString();
@@ -114,6 +118,26 @@ public class XMLRelationship {
 
     public XMLRelationship setEndBAttributeName(String endBAttributeName) {
         this.endBAttributeName = endBAttributeName;
+        return this;
+    }
+
+    @XmlElement
+    public String getEndAAttributeDescription() {
+        return endAAttributeDescription;
+    }
+
+    public XMLRelationship setEndAAttributeDescription(String endAAttributeDescription) {
+        this.endAAttributeDescription = endAAttributeDescription;
+        return this;
+    }
+
+    @XmlElement
+    public String getEndBAttributeDescription() {
+        return endBAttributeDescription;
+    }
+
+    public XMLRelationship setEndBAttributeDescription(String endBAttributeDescription) {
+        this.endBAttributeDescription = endBAttributeDescription;
         return this;
     }
 }

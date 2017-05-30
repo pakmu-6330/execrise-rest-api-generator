@@ -28,7 +28,9 @@ public class RelationshipModel implements Serializable, UUIDIdentifier {
     private int type;
     private int direction;
     private String endAAttributeName;
+    private String endAAttributeDescription;
     private String endBAttributeName;
+    private String endBAttributeDescription;
 
     public RelationshipModel() {
         this.id = UUID.randomUUID().toString();
@@ -109,6 +111,24 @@ public class RelationshipModel implements Serializable, UUIDIdentifier {
 
     public RelationshipModel setEndBAttributeName(String endBAttributeName) {
         this.endBAttributeName = endBAttributeName;
+        return this;
+    }
+
+    public String getEndAAttributeDescription() {
+        return endAAttributeDescription;
+    }
+
+    public RelationshipModel setEndAAttributeDescription(String endAAttributeDescription) {
+        this.endAAttributeDescription = endAAttributeDescription;
+        return this;
+    }
+
+    public String getEndBAttributeDescription() {
+        return endBAttributeDescription;
+    }
+
+    public RelationshipModel setEndBAttributeDescription(String endBAttributeDescription) {
+        this.endBAttributeDescription = endBAttributeDescription;
         return this;
     }
 }

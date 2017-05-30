@@ -20,9 +20,11 @@ public class EntityRelationship {
     private int direction;
 
     private String endAAttributeName;
+    private String endAAttributeDescription;
     private boolean endAExpose;
 
     private String endBAttributeName;
+    private String endBAttributeDescription;
     private boolean endBExpose;
 
     private boolean cascadeSave;
@@ -297,6 +299,46 @@ public class EntityRelationship {
      */
     public EntityRelationship setCascadeDelete(boolean cascadeDelete) {
         this.cascadeDelete = cascadeDelete;
+        return this;
+    }
+
+    /**
+     * 对于关联关系在实体B中A端关联实体的描述
+     *
+     * @return 关联关系在实体B中A端关联实体的描述
+     */
+    public String getEndAAttributeDescription() {
+        return endAAttributeDescription;
+    }
+
+    /**
+     * 设置对于关联关系在实体B中A端关联实体的描述
+     *
+     * @param endAAttributeDescription 对于关联关系在实体B中A端关联实体的描述
+     * @return 关联关系本身
+     */
+    public EntityRelationship setEndAAttributeDescription(String endAAttributeDescription) {
+        this.endAAttributeDescription = endAAttributeDescription;
+        return this;
+    }
+
+    /**
+     * 对于关联关系在实体A中B端关联实体的描述
+     *
+     * @return 对于关联关系在实体A中B端关联实体的描述
+     */
+    public String getEndBAttributeDescription() {
+        return endBAttributeDescription;
+    }
+
+    /**
+     * 设置对于关联关系在实体A中B端关联实体的描述
+     *
+     * @param endBAttributeDescription 对于关联关系在实体A中B端关联实体的描述
+     * @return 对于关联关系在实体A中B端关联实体的描述
+     */
+    public EntityRelationship setEndBAttributeDescription(String endBAttributeDescription) {
+        this.endBAttributeDescription = endBAttributeDescription;
         return this;
     }
 }

@@ -208,12 +208,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     // B 端维护关系
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), ONE_TO_ONE,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), ONE_TO_ONE,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), ONE_TO_ONE,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), ONE_TO_ONE,
                             relationship.isBidirectional());
                 }
 
@@ -227,12 +231,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     builder.mappedBy(endBFieldName);
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), MANY_TO_ONE,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), MANY_TO_ONE,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), ONE_TO_MANY,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), ONE_TO_MANY,
                             relationship.isBidirectional());
                 }
 
@@ -246,12 +254,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     builder.mappedBy(endBFieldName);
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), MANY_TO_MANY,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), MANY_TO_MANY,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null),
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(),
                             MANY_TO_MANY, relationship.isBidirectional());
                 }
 
@@ -265,12 +277,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                 if (handleByEndB) {
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), ONE_TO_MANY,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), ONE_TO_MANY,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null),
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(),
                             MANY_TO_ONE, relationship.isBidirectional());
                 }
             }
@@ -332,12 +348,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     builder.mappedBy(endAFieldName);
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), ONE_TO_ONE,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), ONE_TO_ONE,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), ONE_TO_ONE,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), ONE_TO_ONE,
                             relationship.isBidirectional());
                 }
 
@@ -351,12 +371,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                 if (handleByEndA) {
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), MANY_TO_ONE,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), MANY_TO_ONE,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), ONE_TO_MANY,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), ONE_TO_MANY,
                             relationship.isBidirectional());
                 }
             }
@@ -368,12 +392,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     builder.mappedBy(endAFieldName);
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), MANY_TO_MANY,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), MANY_TO_MANY,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), MANY_TO_MANY,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), MANY_TO_MANY,
                             relationship.isBidirectional());
                 }
 
@@ -387,12 +415,16 @@ public class DefaultFieldConverter implements IFieldConverter {
                     builder.mappedBy(endAFieldName);
                     dataContext.saveRelationHandlerInfo(
                             endA.getName(), endB.getName(), endAFieldName,
-                            (relationship.hasBToA() ? endBFieldName : null), ONE_TO_MANY,
+                            relationship.getEndAAttributeDescription(),
+                            (relationship.hasBToA() ? endBFieldName : ""),
+                            relationship.getEndBAttributeDescription(), ONE_TO_MANY,
                             relationship.isBidirectional());
                 } else {
                     dataContext.saveRelationHandlerInfo(
                             endB.getName(), endA.getName(), endBFieldName,
-                            (relationship.hasAToB() ? endAFieldName : null), MANY_TO_ONE,
+                            relationship.getEndBAttributeDescription(),
+                            (relationship.hasAToB() ? endAFieldName : ""),
+                            relationship.getEndAAttributeDescription(), MANY_TO_ONE,
                             relationship.isBidirectional());
                 }
 

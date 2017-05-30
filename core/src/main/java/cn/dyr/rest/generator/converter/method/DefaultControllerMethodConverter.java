@@ -7,6 +7,7 @@ import cn.dyr.rest.generator.converter.ConverterInject;
 import cn.dyr.rest.generator.converter.DataInject;
 import cn.dyr.rest.generator.converter.name.INameConverter;
 import cn.dyr.rest.generator.entity.EntityInfo;
+import cn.dyr.rest.generator.entity.RelationshipType;
 import cn.dyr.rest.generator.framework.jdk.CollectionsTypeFactory;
 import cn.dyr.rest.generator.framework.jdk.CollectionsValueExpressionFactory;
 import cn.dyr.rest.generator.framework.spring.data.SpringDataParameterFactory;
@@ -724,5 +725,31 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         AnnotationInfo responses = SwaggerAnnotationFactory.apiResponses(ok, notFound);
 
         return info.addAnnotationInfo(apiOperation).addAnnotationInfo(responses);
+    }
+
+    @Override
+    public MethodInfo getRelatedResourcesCreateForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+        if (relationshipHandler.getType() == RelationshipType.ONE_TO_ONE ||
+                relationshipHandler.getType() == RelationshipType.MANY_TO_ONE) {
+            return null;
+        }
+
+        // 获得关联关系对方的实体信息
+        String handledEntityName = relationshipHandler.getToBeHandled();
+        ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handledResourceClass = context.getClassByEntityAndType(handledEntityName, TYPE_RESOURCE_CLASS);
+
+        // 获得本实体的信息
+        ClassInfo thisEntityClass = context.getClassByEntityAndType(entityName, TYPE_ENTITY_CLASS);
+        FieldInfo thisEntityIdField = ClassInfoUtils.findSingleId(thisEntityClass);
+
+        // 创建相应的注解信息
+
+        return null;
+    }
+
+    @Override
+    public MethodInfo getRelatedResourcesDeleteForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+        return null;
     }
 }

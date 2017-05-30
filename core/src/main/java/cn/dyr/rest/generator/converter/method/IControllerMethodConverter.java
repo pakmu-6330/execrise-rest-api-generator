@@ -62,4 +62,24 @@ public interface IControllerMethodConverter extends IConverter {
      */
     MethodInfo getRelatedResourceById(String entityName,
                                       ConvertDataContext.RelationshipHandler relationshipHandler);
+
+    /**
+     * 对于对多关系，添加一个创建关联实体的方法
+     *
+     * @param entityName          实体名称
+     * @param relationshipHandler 关联关系
+     * @return 控制器当中用于创建对多关联关系对象的方法
+     */
+    MethodInfo getRelatedResourcesCreateForHandler(String entityName,
+                                                   ConvertDataContext.RelationshipHandler relationshipHandler);
+
+    /**
+     * 对于对多关系，添加一个删除关联关系实体的方法
+     *
+     * @param entityName          实体名称
+     * @param relationshipHandler 关联关系
+     * @return 控制器当中用于删除对多关联关系对象的方法
+     */
+    MethodInfo getRelatedResourcesDeleteForHandler(String entityName,
+                                                   ConvertDataContext.RelationshipHandler relationshipHandler);
 }

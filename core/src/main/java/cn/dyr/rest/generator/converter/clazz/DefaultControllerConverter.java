@@ -202,6 +202,14 @@ public class DefaultControllerConverter implements IControllerConverter {
             controllerClass.addMethod(relatedEntityGetMethod);
         }
 
+        // 9. 添加对多关联实体的创建方法
+        for (ConvertDataContext.RelationshipHandler handler : relationshipHandlers) {
+            MethodInfo methodInfo = this.controllerMethodConverter.getRelatedResourcesCreateForHandler(entityInfo.getName(), handler);
+            if (methodInfo != null) {
+                controllerClass.addMethod(methodInfo);
+            }
+        }
+
         return controllerClass;
     }
 }

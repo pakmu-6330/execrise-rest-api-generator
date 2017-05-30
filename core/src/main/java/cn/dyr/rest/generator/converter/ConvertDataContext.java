@@ -290,13 +290,16 @@ public class ConvertDataContext implements ITypeContext {
      * @param isBidirectional  判断这个关联关系是否为双向关联关系
      */
     public void saveRelationHandlerInfo(String handler, String toBeHandled,
-                                        String handlerFieldName, String handledFieldName,
+                                        String handlerFieldName, String handlerFieldDescription,
+                                        String handledFieldName, String handledFieldDescription,
                                         RelationshipType type, boolean isBidirectional) {
         RelationshipHandler relationshipHandler = new RelationshipHandler()
                 .setHandler(handler)
                 .setToBeHandled(toBeHandled)
                 .setHandlerFieldName(handlerFieldName)
+                .setHandlerFieldDescription(handlerFieldDescription)
                 .setHandledFieldName(handledFieldName)
+                .setHandledFieldDescription(handledFieldDescription)
                 .setType(type)
                 .setBidirectional(isBidirectional);
 
@@ -702,6 +705,26 @@ public class ConvertDataContext implements ITypeContext {
         }
 
         @Override
+        public String getHandlerFieldDescription() {
+            return this.handler.getHandlerFieldDescription();
+        }
+
+        @Override
+        public RelationshipHandler setHandlerFieldDescription(String handlerFieldDescription) {
+            return this;
+        }
+
+        @Override
+        public String getHandledFieldDescription() {
+            return this.handler.getHandledFieldDescription();
+        }
+
+        @Override
+        public RelationshipHandler setHandledFieldDescription(String handledFieldDescription) {
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -728,7 +751,9 @@ public class ConvertDataContext implements ITypeContext {
         private String toBeHandled;
         private RelationshipType type;
         private String handlerFieldName;
+        private String handlerFieldDescription;
         private String handledFieldName;
+        private String handledFieldDescription;
         private boolean bidirectional;
 
         public String getHandler() {
@@ -782,6 +807,24 @@ public class ConvertDataContext implements ITypeContext {
 
         public RelationshipHandler setBidirectional(boolean bidirectional) {
             this.bidirectional = bidirectional;
+            return this;
+        }
+
+        public String getHandlerFieldDescription() {
+            return handlerFieldDescription;
+        }
+
+        public RelationshipHandler setHandlerFieldDescription(String handlerFieldDescription) {
+            this.handlerFieldDescription = handlerFieldDescription;
+            return this;
+        }
+
+        public String getHandledFieldDescription() {
+            return handledFieldDescription;
+        }
+
+        public RelationshipHandler setHandledFieldDescription(String handledFieldDescription) {
+            this.handledFieldDescription = handledFieldDescription;
             return this;
         }
 

@@ -83,10 +83,12 @@ public class RelationshipInfoPanel
 
     private JCheckBox directionAToB;
     private JTextField endAAttributeName;
+    private JTextField endAFieldDescription;
     private JLabel endAAttributeType;
 
     private JCheckBox directionBToA;
     private JTextField endBAttributeName;
+    private JTextField endBFieldDescription;
     private JLabel endBAttributeType;
 
     private void initComponents() {
@@ -178,8 +180,10 @@ public class RelationshipInfoPanel
         // A->B 关联关系的配置
         JPanel endAAttributePanel = new JPanel(new GridLayout(3, 1));
         JPanel endAAttributeTBPanel = new JPanel(new BorderLayout());
+        JPanel endAAttributeDescriptionPanel = new JPanel(new BorderLayout());
 
         JLabel endAAttributeNameLabel = new JLabel("属性名：");
+        JLabel endAAttributeDescriptionLabel = new JLabel("描述：");
 
         this.directionAToB = new JCheckBox("可以通过 A 获得 B");
         this.directionAToB.setSelected(true);
@@ -187,11 +191,17 @@ public class RelationshipInfoPanel
 
         this.endAAttributeName = new JTextField();
 
+        this.endAFieldDescription = new JTextField();
+
         endAAttributeTBPanel.add(endAAttributeNameLabel, BorderLayout.WEST);
         endAAttributeTBPanel.add(this.endAAttributeName, BorderLayout.CENTER);
 
+        endAAttributeDescriptionPanel.add(endAAttributeDescriptionLabel, BorderLayout.WEST);
+        endAAttributeDescriptionPanel.add(this.endAFieldDescription, BorderLayout.CENTER);
+
         endAAttributePanel.add(this.directionAToB);
         endAAttributePanel.add(endAAttributeTBPanel);
+        endAAttributePanel.add(endAAttributeDescriptionPanel);
 
         endAAttributePanel.setBorder(BorderFactory.createTitledBorder("关联关系 A 端到 B 端的配置"));
 
@@ -201,20 +211,27 @@ public class RelationshipInfoPanel
         // B->A 关联关系的配置
         JPanel endBAttributePanel = new JPanel(new GridLayout(3, 1));
         JPanel endBAttributeTBPanel = new JPanel(new BorderLayout());
+        JPanel endBAttributeDescriptionPanel = new JPanel(new BorderLayout());
 
         JLabel endBAttributeNameLabel = new JLabel("属性名：");
+        JLabel endBAttributeDescriptionLabel = new JLabel("描述：");
 
         this.directionBToA = new JCheckBox("可以通过 B 获得 A");
         this.directionBToA.setSelected(true);
         this.directionBToA.addChangeListener(this);
 
         this.endBAttributeName = new JTextField();
+        this.endBFieldDescription = new JTextField();
 
         endBAttributeTBPanel.add(endBAttributeNameLabel, BorderLayout.WEST);
         endBAttributeTBPanel.add(this.endBAttributeName, BorderLayout.CENTER);
 
+        endBAttributeDescriptionPanel.add(endBAttributeDescriptionLabel, BorderLayout.WEST);
+        endBAttributeDescriptionPanel.add(this.endBFieldDescription, BorderLayout.CENTER);
+
         endBAttributePanel.add(this.directionBToA);
         endBAttributePanel.add(endBAttributeTBPanel);
+        endBAttributePanel.add(endBAttributeDescriptionPanel);
 
         endBAttributePanel.setBorder(BorderFactory.createTitledBorder("关联关系 B 端到 A 端的配置"));
 
@@ -270,7 +287,10 @@ public class RelationshipInfoPanel
      */
     private void updateAttributeTextBoxEditable() {
         this.endAAttributeName.setEditable(this.directionAToB.isSelected());
+        this.endAFieldDescription.setEditable(this.directionAToB.isSelected());
+
         this.endBAttributeName.setEditable(this.directionBToA.isSelected());
+        this.endBFieldDescription.setEditable(this.directionBToA.isSelected());
     }
 
     /**
@@ -296,6 +316,8 @@ public class RelationshipInfoPanel
         String entityBName = (String) this.entityBNameComboBox.getSelectedItem();
         Inflector inflector = Inflector.getInstance();
 
+        String oldName = this.endAAttributeName.getText();
+
         if (this.typeOneToOne.isSelected() ||
                 this.typeManyToOne.isSelected()) {
             String attributeName = StringUtils.lowerFirstLatter(inflector.singularize(entityBName));
@@ -313,6 +335,8 @@ public class RelationshipInfoPanel
     private void autoEndBAttributeName() {
         String entityAName = (String) this.entityANameComboBox.getSelectedItem();
         Inflector inflector = Inflector.getInstance();
+
+        String oldName = this.endBAttributeName.getText();
 
         if (this.typeOneToOne.isSelected() ||
                 this.typeOneToMany.isSelected()) {
@@ -415,10 +439,21 @@ public class RelationshipInfoPanel
             return false;
         }
 
+        // 如果两个关系字段的描述为空，则采用属性名称作为描述文字
+        if (StringUtils.isStringEmpty(this.endAFieldDescription.getText())) {
+            this.endAFieldDescription.setText(this.endAAttributeName.getText());
+        }
+
+        if (StringUtils.isStringEmpty(this.endBFieldDescription.getText())) {
+            this.endBFieldDescription.setText(this.endBAttributeName.getText());
+        }
+
         // 绑定不需要转换的基本信息
         relationshipModel.setName(relationshipName.getText());
         relationshipModel.setEndAAttributeName(endAAttributeName.getText());
         relationshipModel.setEndBAttributeName(endBAttributeName.getText());
+        relationshipModel.setEndAAttributeDescription(endAFieldDescription.getText());
+        relationshipModel.setEndBAttributeDescription(endBFieldDescription.getText());
 
         // 绑定需要简单转换的数据
         if (this.typeOneToOne.isSelected()) {
@@ -533,6 +568,8 @@ public class RelationshipInfoPanel
                 if (StringUtils.isStringEmpty(relationshipModel.getEndAAttributeName())) {
                     endAAttributeName.setText(relationshipModel.getEndAAttributeName());
                 }
+
+                refillAttributeDescription();
             }
 
             // 关联关系主控方
@@ -542,6 +579,22 @@ public class RelationshipInfoPanel
                 entityBHandle.setSelected(true);
             }
         });
+    }
+
+    private void refillAttributeDescription() {
+        if (this.relationshipModel != null &&
+                !StringUtils.isStringEmpty(this.relationshipModel.getEndAAttributeDescription())) {
+            this.endAFieldDescription.setText(this.relationshipModel.getEndAAttributeDescription());
+        } else {
+            this.endAFieldDescription.setText(this.endAAttributeName.getText());
+        }
+
+        if (this.relationshipModel != null &&
+                !StringUtils.isStringEmpty(this.relationshipModel.getEndBAttributeDescription())) {
+            this.endBFieldDescription.setText(this.relationshipModel.getEndBAttributeDescription());
+        } else {
+            this.endBFieldDescription.setText(this.endBAttributeName.getText());
+        }
     }
 
     public String getRelationshipName() {
