@@ -102,4 +102,14 @@ public interface IControllerMethodConverter extends IConverter {
      */
     MethodInfo getRelatedManyToOneGetForHandled(String entityName,
                                                 ConvertDataContext.RelationshipHandler relationshipHandler);
+
+    /**
+     * 针对主控方 Controller 进行对一关联关系的实体对象进行修改的方法
+     *
+     * @param entityName          实体名称
+     * @param relationshipHandler 关联关系数据
+     * @return 如果符合创建 Controller 方法的条件，则返回相应的 Controller 方法，负责返回 null
+     */
+    MethodInfo getRelatedToOneUpdateForHandler(String entityName,
+                                               ConvertDataContext.RelationshipHandler relationshipHandler);
 }

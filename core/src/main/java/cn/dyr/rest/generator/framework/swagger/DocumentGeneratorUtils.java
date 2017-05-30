@@ -149,4 +149,24 @@ public class DocumentGeneratorUtils {
     public static String createSthInSpecifiedSth(String item, String parentItem) {
         return String.format("在指定的%s中创建一个%s", parentItem, item);
     }
+
+    /**
+     * 变更与这个实体相关的实体的提示消息
+     *
+     * @param entityName        实体消息
+     * @param relatedEntityName 相关的实体消息
+     * @return 对应的说明文字
+     */
+    public static String updateRelatedEntity(String entityName, String relatedEntityName) {
+        return String.format("变更%s相关的%s", entityName, relatedEntityName);
+    }
+
+    /**
+     * 返回一个表示操作成功执行的提示信息
+     *
+     * @return 操作成功执行对应的说明文字
+     */
+    public static String ok() {
+        return "操作执行成功";
+    }
 }

@@ -605,4 +605,112 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         return InstructionFactory.sequence(instructionList);
     }
+
+    @Override
+    public IInstruction entityToOneUpdateInstructionForHandler(
+            ConvertDataContext.RelationshipHandler handler,
+            String handlerIdVariable, String handledEntityVariable) {
+        // 先检查是否满足这个逻辑的使用条件
+        if (handler.getType() == RelationshipType.ONE_TO_MANY ||
+                handler.getType() == RelationshipType.MANY_TO_MANY) {
+            return null;
+        }
+
+        IValueExpression handledEntityVariableValueExpression = ValueExpressionFactory.variable(handledEntityVariable);
+
+        // 这里准备维护方实体的一些数据
+        String handlerEntityName = handler.getHandler();
+        ClassInfo handlerEntityClass = convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+
+        String handlerEntityVariableName = StringUtils.lowerFirstLatter(handlerEntityClass.getClassName());
+        IValueExpression handlerEntityVariableValueExpression = ValueExpressionFactory.variable(handlerEntityVariableName);
+
+        String handlerDAOFieldName = convertDataContext.getDAODefaultFieldName(handlerEntityName);
+        IValueExpression handlerDAOFieldValueExpression = ValueExpressionFactory.variable(handlerDAOFieldName);
+
+        String handlerFieldName = handler.getHandlerFieldName();
+        MethodInfo handlerFieldSetterMethod = handlerEntityClass.setterMethod(handlerFieldName);
+
+        // 这里准备被维护方实体的一些数据
+        String handledEntityName = handler.getToBeHandled();
+        ClassInfo handledEntityClass = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+
+        String handledDAOFieldName = convertDataContext.getDAODefaultFieldName(handledEntityName);
+        IValueExpression handledDAOFieldValueExpression = ValueExpressionFactory.variable(handledDAOFieldName);
+
+        FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
+        MethodInfo handledIdGetterMethod = handledEntityClass.getterMethod(handledIdField.getName());
+
+        List<IInstruction> instructionList = new ArrayList<>();
+
+        // #1 根据维护方实体编号查找数据库中已经存在的实体
+        {
+            IInstruction findHandlerInstruction = InstructionFactory.variableDeclaration(
+                    handlerEntityClass.getType(), handlerEntityVariableName,
+                    handlerDAOFieldValueExpression.invokeMethod("findOne",
+                            ValueExpressionFactory.variable(handlerIdVariable)));
+            instructionList.add(findHandlerInstruction);
+        }
+
+        // #2, #3 根据寻找结果进行判断
+        {
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(
+                    handlerEntityVariableValueExpression, ValueExpressionFactory.nullExpression());
+
+            IInstruction returnInstruction = InstructionFactory.returnNull();
+            IInstruction ifInstruction = new ChoiceFlowBuilder().setIfBlock(condition, returnInstruction).build();
+            instructionList.add(ifInstruction);
+        }
+
+        // #4 检查传入的被维护方是否存在
+        {
+            IInstruction checkExistenceInstruction =
+                    InstructionFactory.variableDeclaration(handledEntityClass.getType(), "exists",
+                            handledDAOFieldValueExpression.invokeMethod("findOne", new Object[]{
+                                    handledEntityVariableValueExpression.invokeMethod(handledIdGetterMethod.getName())
+                            }));
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(checkExistenceInstruction);
+        }
+
+        // #5, #6, #7 三条指令
+        {
+            IValueExpression existsValueExpression = ValueExpressionFactory.variable("exists");
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(existsValueExpression, ValueExpressionFactory.nullExpression());
+
+            IInstruction saveInstruction = InstructionFactory.invoke(
+                    handledDAOFieldValueExpression, "save", handledEntityVariableValueExpression);
+            IInstruction assignmentInstruction = InstructionFactory.assignment(
+                    handledEntityVariable, existsValueExpression);
+
+            IInstruction ifInstruction = new ChoiceFlowBuilder().setIfBlock(condition, saveInstruction)
+                    .setElse(assignmentInstruction).build();
+            instructionList.add(ifInstruction);
+        }
+
+        // #8 变更维护方实体和被维护方实体之间的关系
+        {
+            IInstruction setFieldInstruction = InstructionFactory.invoke(
+                    handlerEntityVariableValueExpression, handlerFieldSetterMethod.getName(),
+                    handledEntityVariableValueExpression);
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(setFieldInstruction);
+        }
+
+        // #9 通过维护方实体 DAO 对修改关系以后的维护方实体进行保存
+        {
+            IInstruction saveInstruction = InstructionFactory.invoke(
+                    handlerDAOFieldValueExpression, "save", handlerEntityVariableValueExpression);
+            instructionList.add(saveInstruction);
+        }
+
+        // #10 对修改以后的被维护方对象进行返回
+        {
+            IInstruction returnInstruction = InstructionFactory.returnInstruction(handledEntityVariableValueExpression);
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(returnInstruction);
+        }
+
+        return InstructionFactory.sequence(instructionList);
+    }
 }

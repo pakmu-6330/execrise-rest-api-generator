@@ -105,4 +105,15 @@ public interface IServiceInstructionConverter extends IConverter {
      */
     IInstruction entityManyToOneCreatedInstructionForHandled(ConvertDataContext.RelationshipHandler handler,
                                                              String handledIdVariable, String handlerEntityVariable);
+
+    /**
+     * 用于关系维护方修改对一中的一方对象
+     *
+     * @param handler               关联关系信息
+     * @param handlerIdVariable     维护方实体的唯一标识符
+     * @param handledEntityVariable 被维护方的实体对象
+     * @return 处理这个一方对象修改的指令
+     */
+    IInstruction entityToOneUpdateInstructionForHandler(ConvertDataContext.RelationshipHandler handler,
+                                                        String handlerIdVariable, String handledEntityVariable);
 }

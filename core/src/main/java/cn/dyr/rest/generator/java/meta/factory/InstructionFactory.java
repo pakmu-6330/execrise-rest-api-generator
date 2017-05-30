@@ -41,6 +41,15 @@ public class InstructionFactory {
     }
 
     /**
+     * 用于创建一个返回 null 的语句
+     *
+     * @return 一个表示返回 null 的语句
+     */
+    public static IInstruction returnNull() {
+        return returnInstruction(ValueExpressionFactory.nullExpression());
+    }
+
+    /**
      * 创建一条用于方法内部声明变量
      *
      * @param typeInfo        所声明变量的类型

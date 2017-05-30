@@ -1140,4 +1140,123 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
         return methodInfo
                 .setRootInstruction(InstructionFactory.sequence(instructionList));
     }
+
+    @Override
+    public MethodInfo getRelatedToOneUpdateForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+        // 在生成之前先对关联关系数据进行判定，只有在符合条件时才会产生相应的方法
+        if (relationshipHandler.getType() == RelationshipType.MANY_TO_MANY ||
+                relationshipHandler.getType() == RelationshipType.ONE_TO_MANY) {
+            return null;
+        }
+
+        // 准备维护方的一些信息
+        String handlerEntityName = relationshipHandler.getHandler();
+        ClassInfo handlerEntityClass = context.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+        FieldInfo handlerIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
+        EntityInfo handlerEntity = context.getEntityByName(handlerEntityName);
+
+        String handlerServiceFieldName = context.getServiceDefaultFieldName(handlerEntityName);
+
+        // 准备被维护方的一些信息
+        String handledEntityName = relationshipHandler.getToBeHandled();
+        ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handledResourceClass = context.getClassByEntityAndType(handledEntityName, TYPE_RESOURCE_CLASS);
+        EntityInfo handledEntity = context.getEntityByName(handledEntityName);
+
+        String handledAssemblerFieldName = context.getAssemblerDefaultFieldName(handledEntityName);
+
+        String handledEntityVariableName = StringUtils.lowerFirstLatter(handledEntityClass.getClassName());
+
+        // 返回值准备
+        TypeInfo returnType = SpringMVCTypeFactory.httpEntity(handledResourceClass.getType());
+
+        // 方法名称
+        String methodName = String.format("put%s", StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()));
+
+        // 方法的参数
+        Parameter idParameter = ParameterFactory.create(handlerIdField.getType(), "id");
+        idParameter.addAnnotationInfo(SpringMVCAnnotationFactory.pathVariable("id"));
+
+        Parameter bodyParameter = ParameterFactory.create(handledEntityClass.getType(), handledEntityVariableName);
+        bodyParameter.addAnnotationInfo(SpringMVCAnnotationFactory.requestBody());
+
+        // 生成相应的注解数据
+        AnnotationInfo putMapping = SpringMVCAnnotationFactory.putMapping(
+                String.format("/{id}/%s", relationshipHandler.getHandlerFieldName()));
+        AnnotationInfo apiOperation = SwaggerAnnotationFactory.apiOperation(
+                DocumentGeneratorUtils.updateRelatedEntity(
+                        handlerEntity.getDescription(), handledEntity.getDescription()));
+        AnnotationInfo notFoundResponse = SwaggerAnnotationFactory.createNotFoundResponse(
+                DocumentGeneratorUtils.notFound(handlerEntity.getDescription()));
+        AnnotationInfo okResponse = SwaggerAnnotationFactory.createHttpOkResponse(DocumentGeneratorUtils.ok());
+        AnnotationInfo apiResponses = SwaggerAnnotationFactory.apiResponses(okResponse, notFoundResponse);
+
+        // 生成相应的指令
+        List<IInstruction> instructionList = new ArrayList<>();
+        String serviceExecuteResultVariable = "new" + StringUtils.upperFirstLatter(bodyParameter.getName());
+        IValueExpression serviceExecuteResultValueExpression = ValueExpressionFactory.variable(serviceExecuteResultVariable);
+
+        // #1 调用 Service 类方法
+        {
+            String serviceMethodName = String.format("update%s%s",
+                    StringUtils.upperFirstLatter(handlerEntityClass.getClassName()),
+                    StringUtils.upperFirstLatter(relationshipHandler.getHandlerFieldName()));
+            IInstruction serviceInvocationInstruction = InstructionFactory.variableDeclaration(
+                    handledEntityClass.getType(), serviceExecuteResultVariable,
+                    ValueExpressionFactory.variable(handlerServiceFieldName)
+                            .invokeMethod(serviceMethodName, new Object[]{
+                                    ValueExpressionFactory.variable(idParameter.getName()),
+                                    ValueExpressionFactory.variable(bodyParameter.getName())
+                            }));
+            instructionList.add(serviceInvocationInstruction);
+        }
+
+        // if 分支里面指令的生成
+        {
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(serviceExecuteResultValueExpression, ValueExpressionFactory.nullExpression());
+
+            // 如果返回了 null，则创建一个没有任何数据的实体类对象
+            IInstruction createInstruction = InstructionFactory.assignment(serviceExecuteResultValueExpression,
+                    ValueExpressionFactory.invokeConstructor(handledEntityClass.getType()));
+
+            // 进行实体类到资源类转换的表达式
+            IValueExpression resourceAssemblyValueExpression = ValueExpressionFactory
+                    .variable(handledAssemblerFieldName)
+                    .invokeMethod("toResource", serviceExecuteResultValueExpression);
+
+            // 返回没找到情况的返回指令
+            IValueExpression notFoundReturnValueExpression =
+                    ValueExpressionFactory.invokeConstructor(
+                            SpringMVCTypeFactory.responseEntity(handledResourceClass.getType()), new Object[]{
+                                    resourceAssemblyValueExpression,
+                                    SpringMVCValueExpressionFactory.httpStatusNotFound()
+                            });
+            IInstruction notFoundReturnInstruction = InstructionFactory.returnInstruction(notFoundReturnValueExpression);
+
+            // 返回已经顺利修改的返回指令
+            IValueExpression successReturnValueExpression =
+                    ValueExpressionFactory.invokeConstructor(
+                            SpringMVCTypeFactory.responseEntity(handledResourceClass.getType()), new Object[]{
+                                    resourceAssemblyValueExpression,
+                                    SpringMVCValueExpressionFactory.httpStatusOK()
+                            });
+            IInstruction successReturnInstruction = InstructionFactory.returnInstruction(successReturnValueExpression);
+
+            IInstruction ifInstruction = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, InstructionFactory.sequence(createInstruction, notFoundReturnInstruction))
+                    .setElse(successReturnInstruction)
+                    .build();
+            instructionList.add(ifInstruction);
+        }
+
+        return new MethodInfo()
+                .setName(methodName)
+                .setReturnValueType(returnType)
+                .addParameter(idParameter)
+                .addParameter(bodyParameter)
+                .addAnnotationInfo(putMapping)
+                .addAnnotationInfo(apiOperation)
+                .addAnnotationInfo(apiResponses)
+                .setRootInstruction(InstructionFactory.sequence(instructionList));
+    }
 }

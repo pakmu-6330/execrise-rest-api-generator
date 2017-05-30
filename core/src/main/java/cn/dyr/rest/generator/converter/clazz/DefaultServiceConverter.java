@@ -702,6 +702,67 @@ public class DefaultServiceConverter implements IServiceConverter {
         }
     }
 
+    private void handleHandlerToOneMethod(ClassInfo serviceClass, EntityInfo entityInfo) {
+        List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
+        if (handlers != null && handlers.size() > 0) {
+            for (ConvertDataContext.RelationshipHandler handler : handlers) {
+                // 检查关系条件是否满足下面的逻辑
+                if (handler.getType() == RelationshipType.MANY_TO_MANY ||
+                        handler.getType() == RelationshipType.ONE_TO_MANY) {
+                    continue;
+                }
+
+                // 准备维护方实体信息
+                String handlerEntityName = handler.getHandler();
+                ClassInfo handlerEntityClass = convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+                FieldInfo handlerIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
+
+                String handlerIdVariableName = String.format("%s%s",
+                        StringUtils.lowerFirstLatter(handlerEntityClass.getClassName()),
+                        StringUtils.upperFirstLatter(handlerIdField.getName()));
+
+                // 准备被维护方实体信息
+                String handledEntityName = handler.getToBeHandled();
+                ClassInfo handledEntityClass = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+
+                String handledEntityVariableName = StringUtils.lowerFirstLatter(handledEntityClass.getClassName());
+
+                // 尝试产生相应的方法指令
+                IInstruction instruction = this.instructionConverter.entityToOneUpdateInstructionForHandler(
+                        handler, handlerIdVariableName, handledEntityVariableName);
+
+                // 返回值
+                TypeInfo returnType = handledEntityClass.getType();
+
+                // 方法名
+                String methodName = String.format("update%s%s",
+                        StringUtils.upperFirstLatter(handlerEntityClass.getClassName()),
+                        StringUtils.upperFirstLatter(handler.getHandlerFieldName()));
+
+                // 参数
+                Parameter idParameter = ParameterFactory.create(handlerIdField.getType(), handlerIdVariableName);
+                Parameter bodyParameter = ParameterFactory.create(handledEntityClass.getType(), handledEntityVariableName);
+
+                // 注解
+                AnnotationInfo transactional = SpringFrameworkAnnotationFactory.transactional();
+                AnnotationInfo override = JDKAnnotationFactory.override();
+
+                // 对方法信息经进行拼装
+                MethodInfo methodInfo = new MethodInfo()
+                        .setName(methodName)
+                        .setReturnValueType(returnType)
+                        .addParameter(idParameter)
+                        .addParameter(bodyParameter)
+                        .addAnnotationInfo(transactional)
+                        .addAnnotationInfo(override)
+                        .setRootInstruction(instruction);
+
+                // 把这个方法添加到类当中
+                serviceClass.addMethod(methodInfo);
+            }
+        }
+    }
+
     private void handleHandlerToManyMethod(ClassInfo serviceClass, EntityInfo entityInfo) {
         List<ConvertDataContext.RelationshipHandler> handlers = convertDataContext.findByHandler(entityInfo.getName());
         if (handlers != null) {
@@ -849,6 +910,7 @@ public class DefaultServiceConverter implements IServiceConverter {
 
         // 产生这个实体维护的关联关系对应的 Service 添加方法
         handleHandlerToManyMethod(serviceClass, entityInfo);
+        handleHandlerToOneMethod(serviceClass, entityInfo);
         handleHandledOneToManyMethod(serviceClass, entityInfo);
 
         return serviceClass;
