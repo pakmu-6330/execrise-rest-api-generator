@@ -114,7 +114,7 @@ public class ProjectGenerationContext {
         thisProject.setGroupId(project.getAuthor());
         thisProject.setArtifactId(project.getProjectName());
         thisProject.setVersion(project.getVersion());
-        thisProject.setPackaging(MavenCoordinate.PACKAGE_WAR);
+        thisProject.setPackaging(MavenCoordinate.PACKAGE_JAR);
 
         // 将本项目的 POM 文件继承 spring boot
         retValue.setCoordinate(thisProject);

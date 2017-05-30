@@ -3,16 +3,22 @@ package cn.dyr.rest.generator.ui.swing.panel;
 import cn.dyr.rest.generator.ui.swing.SwingUIApplication;
 import cn.dyr.rest.generator.ui.swing.context.ProjectGenerator;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
+import cn.dyr.rest.generator.ui.swing.util.MessageBoxUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.border.Border;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
@@ -20,6 +26,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.InputStream;
 import java.util.UUID;
 
 /**
@@ -41,16 +48,17 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
     // <editor-fold desc="界面相关代码">
 
     private JTextField targetFileURL;
-    private JTextField targetExecutableURL;
     private JFileChooser fileChooser;
 
+    private JTextArea logArea;
+
+    private JCheckBox generateExecutableFile;
+
     private JPanel outputPanel;
-    private JPanel executableOutputPanel;
+    private JPanel logPanel;
 
     private JButton generateButton;
     private JButton browserButton;
-    private JButton executableGenerateButton;
-    private JButton executableBrowserButton;
 
     private void initComponents() {
         this.fileChooser = new JFileChooser();
@@ -59,26 +67,21 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
         this.outputPanel = new JPanel(new GridLayout(3, 1));
         this.outputPanel.setBorder(BorderFactory.createTitledBorder("代码输出信息"));
 
-        this.executableOutputPanel = new JPanel(new GridLayout(3, 1));
-        this.executableOutputPanel.setBorder(BorderFactory.createTitledBorder("可执行文件输出"));
-
         this.generateButton = new JButton("生成");
         this.generateButton.addActionListener(this);
-
-        this.executableGenerateButton = new JButton("生成");
-        this.executableGenerateButton.addActionListener(this);
 
         this.browserButton = new JButton("浏览");
         this.browserButton.addActionListener(this);
 
-        this.executableBrowserButton = new JButton("浏览");
-        this.executableBrowserButton.addActionListener(this);
-
         this.targetFileURL = new JTextField();
         this.targetFileURL.setEditable(false);
 
-        this.targetExecutableURL = new JTextField();
-        this.targetExecutableURL.setEditable(false);
+        this.generateExecutableFile = new JCheckBox("生成可执行文件");
+
+        this.logArea = new JTextArea();
+        this.logArea.setEditable(false);
+
+        this.logPanel = new JPanel(new BorderLayout());
 
         // 代码输出的面板
         // 面板的第一行
@@ -94,34 +97,21 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
         outputPanel.add(secondRow);
 
         // 第三行
-        JPanel lastRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        lastRow.add(this.generateButton);
+        JPanel lastRow = new JPanel(new BorderLayout());
+        lastRow.add(this.generateButton, BorderLayout.EAST);
+        lastRow.add(this.generateExecutableFile, BorderLayout.WEST);
         outputPanel.add(lastRow);
 
-        // 可执行文件输出的面板
-        // 第一行
-        JLabel executable = new JLabel("请选择可执行文件的输出路径：");
-        JPanel executableFirstRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        executableFirstRow.add(executable);
-        this.executableOutputPanel.add(executableFirstRow);
-
-        // 第二行
-        JPanel executableSecondRow = new JPanel(new BorderLayout());
-        executableSecondRow.add(this.targetExecutableURL, BorderLayout.CENTER);
-        executableSecondRow.add(this.executableBrowserButton, BorderLayout.EAST);
-        this.executableOutputPanel.add(executableSecondRow);
-
-        // 第三行
-        JPanel executableLastRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        executableLastRow.add(this.executableGenerateButton);
-        this.executableOutputPanel.add(executableLastRow);
+        // 日志输出面板
+        this.logPanel.setBorder(BorderFactory.createTitledBorder("生成日志"));
+        this.logPanel.add(new JScrollPane(this.logArea), BorderLayout.CENTER);
 
         // 用于组织两个面板的临时面板
-        JPanel mainPanel = new JPanel(new GridLayout(2, 1));
-        mainPanel.add(this.outputPanel);
-        mainPanel.add(this.executableOutputPanel);
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(this.outputPanel, BorderLayout.NORTH);
+        mainPanel.add(this.logPanel, BorderLayout.CENTER);
 
-        this.add(mainPanel, BorderLayout.NORTH);
+        this.add(mainPanel, BorderLayout.CENTER);
     }
 
     // </editor-fold>
@@ -155,6 +145,7 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
         EventQueue.invokeLater(() -> {
             browserButton.setEnabled(enabled);
             generateButton.setEnabled(enabled);
+            generateExecutableFile.setEnabled(enabled);
         });
     }
 
@@ -164,6 +155,12 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
     }
 
     private class GenerateThread implements Runnable {
+
+        private boolean executableFileGenerated;
+
+        GenerateThread() {
+            this.executableFileGenerated = generateExecutableFile.isSelected();
+        }
 
         @Override
         public void run() {
@@ -183,12 +180,37 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
             try {
                 setInputEnabled(false);
 
+                // 生成代码文件
                 ProjectGenerator generator = new ProjectGenerator(SwingUIApplication.getInstance().getCurrentProjectContext());
                 generator.generate(targetDir);
+
+                // 对代码进行打包
+                if (executableFileGenerated) {
+                    String pathValue = System.getenv("Path");
+                    String javaHomeValue = System.getenv("JAVA_HOME");
+                    String classpath = System.getenv("CLASSPATH");
+
+                    Runtime currentRunTime = Runtime.getRuntime();
+                    Process process = currentRunTime.exec("cmd /c mvn package", new String[]{
+                            String.format("Path=%s", pathValue),
+                            String.format("JAVA_HOME=%s", javaHomeValue),
+                            String.format("CLASSPATH=%s", classpath)
+                    }, targetDir);
+                    int code = process.waitFor();
+
+                    logger.info("mvn return code: {}", code);
+
+                    InputStream errorStream = process.getErrorStream();
+                    String content = IOUtils.toString(errorStream, "GBK");
+
+                    logger.info("stderr:");
+                    logger.info("{}", content);
+                }
 
                 EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(GenerationPanel.this, "代码生成成功！"));
             } catch (Exception e) {
                 logger.error("exception occurred during generating code...", e);
+                MessageBoxUtils.showExceptionMessageBox(GenerationPanel.this, e);
             } finally {
                 setInputEnabled(true);
             }

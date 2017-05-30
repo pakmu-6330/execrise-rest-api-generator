@@ -150,7 +150,7 @@ public class MavenProject implements IXMLMapping {
         this.coordinate.xmlMapping(projectNode);
 
         // packaging 属性，坐标本身不会添加到 dom 之中
-        projectNode.addElement("package").addText(this.coordinate.getPackaging());
+        projectNode.addElement("packaging").addText(this.coordinate.getPackaging());
 
         // 添加 name 和 description 属性
         if (!StringUtils.isStringEmpty(this.name)) {
