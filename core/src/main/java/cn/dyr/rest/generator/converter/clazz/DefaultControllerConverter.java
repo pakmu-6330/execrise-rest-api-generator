@@ -196,15 +196,24 @@ public class DefaultControllerConverter implements IControllerConverter {
         controllerClass.addMethod(delete);
 
         // 8. 添加关联实体的查询方法
-        List<ConvertDataContext.RelationshipHandler> relationshipHandlers = this.convertDataContext.findByHandler(entityInfo.getName());
-        for (ConvertDataContext.RelationshipHandler handler : relationshipHandlers) {
+        List<ConvertDataContext.RelationshipHandler> handlerList = this.convertDataContext.findByHandler(entityInfo.getName());
+        List<ConvertDataContext.RelationshipHandler> handledList = this.convertDataContext.findByHandled(entityInfo.getName());
+        for (ConvertDataContext.RelationshipHandler handler : handlerList) {
             MethodInfo relatedEntityGetMethod = this.controllerMethodConverter.getRelatedResourceById(entityInfo.getName(), handler);
             controllerClass.addMethod(relatedEntityGetMethod);
         }
 
         // 9. 添加对多关联实体的创建方法
-        for (ConvertDataContext.RelationshipHandler handler : relationshipHandlers) {
+        for (ConvertDataContext.RelationshipHandler handler : handlerList) {
             MethodInfo methodInfo = this.controllerMethodConverter.getRelatedResourcesCreateForHandler(entityInfo.getName(), handler);
+            if (methodInfo != null) {
+                controllerClass.addMethod(methodInfo);
+            }
+        }
+
+        // 10. 遍历相关的方法
+        for (ConvertDataContext.RelationshipHandler handler : handledList) {
+            MethodInfo methodInfo = this.controllerMethodConverter.getRelatedManyToOneCreateForHandled(entityInfo.getName(), handler);
             if (methodInfo != null) {
                 controllerClass.addMethod(methodInfo);
             }

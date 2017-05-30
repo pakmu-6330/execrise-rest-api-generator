@@ -360,8 +360,8 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
     }
 
     @Override
-    public IInstruction handledEntityToManyCreatedInstruction(ConvertDataContext.RelationshipHandler handler,
-                                                              String idVariable, String handledEntityObjectVariable) {
+    public IInstruction entityToManyCreatedInstructionForHandler(ConvertDataContext.RelationshipHandler handler,
+                                                                 String idVariable, String handledEntityObjectVariable) {
         // 判断是否为对多的关联关系
         if (handler.getType() == RelationshipType.MANY_TO_ONE ||
                 handler.getType() == RelationshipType.ONE_TO_ONE) {
@@ -489,5 +489,116 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
         }
 
         return sequence(instructionList);
+    }
+
+    @Override
+    public IInstruction entityManyToOneCreatedInstructionForHandled(
+            ConvertDataContext.RelationshipHandler handler,
+            String handledIdVariable, String handlerEntityVariable) {
+        // 判判断这个适用条件
+        if (handler.getType() != RelationshipType.MANY_TO_ONE) {
+            return null;
+        }
+
+        // 如果被维护方没有早维护方的关联字段，则说明不需要生成相应的逻辑
+        if (StringUtils.isStringEmpty(handler.getHandledFieldName())) {
+            return null;
+        }
+
+        // 准备相关数据
+        // 1. 关联关系主控方的一些相关数据
+        String handlerEntityName = handler.getHandler();
+        ClassInfo handlerEntityClass = convertDataContext.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+        FieldInfo handlerEntityIdField = ClassInfoUtils.findSingleId(handlerEntityClass);
+        MethodInfo handlerEntityIdSetter = handlerEntityClass.setterMethod(handlerEntityIdField.getName());
+
+        String handlerDAOFieldName = convertDataContext.getDAODefaultFieldName(handlerEntityName);
+        IValueExpression handlerDAOFieldValueExpression = ValueExpressionFactory.variable(handlerDAOFieldName);
+
+        IValueExpression handlerEntityVariableValueExpression = ValueExpressionFactory.variable(handlerEntityVariable);
+
+        String handlerFieldName = handler.getHandlerFieldName();
+        MethodInfo handlerFieldSetterMethod = handlerEntityClass.setterMethod(handlerFieldName);
+
+        // 2. 关联关系被控方的一些相关数据
+        String handledEntityName = handler.getToBeHandled();
+        ClassInfo handledEntityClass = convertDataContext.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+
+        String handledDAOFieldName = convertDataContext.getDAODefaultFieldName(handledEntityName);
+        String handledEntityVariable = StringUtils.lowerFirstLatter(handledEntityClass.getClassName());
+
+        IValueExpression handledIdVariableValueExpression = ValueExpressionFactory.variable(handledIdVariable);
+        IValueExpression handledEntityVariableValueExpression = ValueExpressionFactory.variable(handledEntityVariable);
+
+        // 3. 用于存放生成指令的集合类
+        List<IInstruction> instructionList = new ArrayList<>();
+
+        // #1 找到关联关系被控方的对象
+        {
+            IValueExpression daoInvokeValueExpression = ValueExpressionFactory.variable(handledDAOFieldName)
+                    .invokeMethod("findOne", handledIdVariableValueExpression);
+            IInstruction daoInvokeInstruction = InstructionFactory.variableDeclaration(
+                    handledEntityClass.getType(), handledEntityVariable, daoInvokeValueExpression);
+            instructionList.add(daoInvokeInstruction);
+        }
+
+        // #2 判断被维护方对象是否存在
+        {
+            // 判断条件
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(handledEntityVariableValueExpression, ValueExpressionFactory.nullExpression());
+
+            // #3 返回 null 的指令
+            IInstruction returnNullInstruction = InstructionFactory.returnInstruction(ValueExpressionFactory.nullExpression());
+
+            ChoiceFlowBuilder builder = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, returnNullInstruction);
+            IInstruction ifInstruction = builder.build();
+
+            instructionList.add(ifInstruction);
+        }
+
+        // #4 清空维护关系实体的唯一标识符
+        {
+            IInstruction clearHandlerIdInstruction =
+                    InstructionFactory.invoke(handlerEntityVariableValueExpression,
+                            handlerEntityIdSetter.getName(),
+                            ValueExpressionFactory.typeDefaultValueExpression(handlerEntityIdField.getType()));
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(clearHandlerIdInstruction);
+        }
+
+        // #5 将维护方实体保存到数据库当中
+        {
+            IInstruction saveInstruction = InstructionFactory
+                    .invoke(handlerDAOFieldValueExpression, "save",
+                            handlerEntityVariableValueExpression);
+            instructionList.add(saveInstruction);
+        }
+
+        // #6 建立维护方实体和被维护方实体之间的关系
+        {
+            IInstruction relationshipBuildInstruction =
+                    InstructionFactory.invoke(handlerEntityVariableValueExpression,
+                            handlerFieldSetterMethod.getName(), handledEntityVariableValueExpression);
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(relationshipBuildInstruction);
+        }
+
+        // #7 将关系已经建立的维护方实体保存到数据库中
+        {
+            IInstruction saveInstruction = InstructionFactory
+                    .invoke(handlerDAOFieldValueExpression, "save",
+                            handlerEntityVariableValueExpression);
+            instructionList.add(saveInstruction);
+        }
+
+        // #8 返回已经保存到数据库中的主控方实体对象
+        {
+            IInstruction returnInstruction = InstructionFactory.returnInstruction(handlerEntityVariableValueExpression);
+            instructionList.add(InstructionFactory.emptyInstruction());
+            instructionList.add(returnInstruction);
+        }
+
+        return InstructionFactory.sequence(instructionList);
     }
 }

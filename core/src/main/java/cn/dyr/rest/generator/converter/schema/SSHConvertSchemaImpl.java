@@ -68,6 +68,8 @@ import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_IM
 import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_SERVICE_INTERFACE;
 
 /**
+ * 这个方案是用于生成基于 Spring, Spring MVC 和 Hibernate 三个框架的 REST 风格 Web API 实现
+ *
  * @author DENG YURONG
  * @version 0.1.0001
  */

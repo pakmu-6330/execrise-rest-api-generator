@@ -82,4 +82,14 @@ public interface IControllerMethodConverter extends IConverter {
      */
     MethodInfo getRelatedResourcesDeleteForHandler(String entityName,
                                                    ConvertDataContext.RelationshipHandler relationshipHandler);
+
+    /**
+     * 针对被控方 Controller 创建多对一（主控方为多方）的相应方法
+     *
+     * @param entityName          实体名称
+     * @param relationshipHandler 关联关系数据
+     * @return 如果符合创建 Controller 方法的条件，则返回相应的 Controller 方法，否则返回 null
+     */
+    MethodInfo getRelatedManyToOneCreateForHandled(String entityName,
+                                                   ConvertDataContext.RelationshipHandler relationshipHandler);
 }

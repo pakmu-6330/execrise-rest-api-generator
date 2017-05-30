@@ -16,6 +16,7 @@ import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCTypeFactory;
 import cn.dyr.rest.generator.framework.spring.mvc.SpringMVCValueExpressionFactory;
 import cn.dyr.rest.generator.framework.swagger.DocumentGeneratorUtils;
 import cn.dyr.rest.generator.framework.swagger.SwaggerAnnotationFactory;
+import cn.dyr.rest.generator.java.generator.statement.method.VariableDeclarationStatement;
 import cn.dyr.rest.generator.java.meta.AnnotationInfo;
 import cn.dyr.rest.generator.java.meta.ClassInfo;
 import cn.dyr.rest.generator.java.meta.FieldInfo;
@@ -33,6 +34,7 @@ import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
 
+import javax.print.Doc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -868,8 +870,130 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
     @Override
     public MethodInfo getRelatedResourcesDeleteForHandler(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
-
-
         return null;
+    }
+
+    @Override
+    public MethodInfo getRelatedManyToOneCreateForHandled(String entityName, ConvertDataContext.RelationshipHandler relationshipHandler) {
+        // 判断被控方是否存在往主控方的属性字段
+        if (StringUtils.isStringEmpty(relationshipHandler.getHandledFieldName())) {
+            return null;
+        }
+
+        // 判断是否为多对一的关联关系
+        if (relationshipHandler.getType() != RelationshipType.MANY_TO_ONE) {
+            return null;
+        }
+
+        // 这里准备主控方的一些数据
+        String handlerEntityName = relationshipHandler.getHandler();
+        ClassInfo handlerEntityClass = context.getClassByEntityAndType(handlerEntityName, TYPE_ENTITY_CLASS);
+        ClassInfo handlerResourceClass = context.getClassByEntityAndType(handlerEntityName, TYPE_RESOURCE_CLASS);
+
+        EntityInfo handlerEntity = context.getEntityByName(handlerEntityName);
+
+        String newHandlerEntityVariable = String.format("new%s",
+                StringUtils.upperFirstLatter(handlerEntityClass.getClassName()));
+        IValueExpression newHandlerEntityValueExpression = ValueExpressionFactory.variable(newHandlerEntityVariable);
+
+        String handlerAssemblerFieldName = context.getAssemblerDefaultFieldName(handlerEntityName);
+        IValueExpression handlerAssemblerFieldValueExpression = ValueExpressionFactory.variable(handlerAssemblerFieldName);
+
+        // 这里准备被控方的一些数据
+        String handledEntityName = relationshipHandler.getToBeHandled();
+        ClassInfo handledEntityClass = context.getClassByEntityAndType(handledEntityName, TYPE_ENTITY_CLASS);
+        EntityInfo handledEntity = context.getEntityByName(handledEntityName);
+        FieldInfo handledIdField = ClassInfoUtils.findSingleId(handledEntityClass);
+        String handledServiceFieldName = context.getServiceDefaultFieldName(handledEntityName);
+
+        // 方法的返回值
+        TypeInfo returnType = SpringMVCTypeFactory.httpEntity(handlerResourceClass.getType());
+
+        // 方法的名称
+        String methodName = String.format("create%sIn%s",
+                StringUtils.upperFirstLatter(relationshipHandler.getHandledFieldName()),
+                StringUtils.upperFirstLatter(handledEntityClass.getClassName()));
+
+        // 准备参数
+        Parameter idParameter = ParameterFactory.create(handledIdField.getType(), "id");
+        idParameter.addAnnotationInfo(SpringMVCAnnotationFactory.pathVariable("id"));
+
+        Parameter bodyParameter = ParameterFactory.create(
+                handlerEntityClass.getType(), StringUtils.lowerFirstLatter(handlerEntityClass.getClassName()));
+        bodyParameter.addAnnotationInfo(SpringMVCAnnotationFactory.requestBody());
+
+        // 创建注解
+        String mvcRoute = String.format("/{id}/%s", relationshipHandler.getHandledFieldName());
+        AnnotationInfo postMapping = SpringMVCAnnotationFactory.postMapping(mvcRoute);
+
+        AnnotationInfo apiOperation = SwaggerAnnotationFactory.apiOperation(
+                DocumentGeneratorUtils.createSthInSpecifiedSth(
+                        handlerEntity.getDescription(), relationshipHandler.getHandledFieldDescription()));
+
+        AnnotationInfo notFoundAnnotation = SwaggerAnnotationFactory.createNotFoundResponse(
+                DocumentGeneratorUtils.notFound(handledEntity.getDescription()));
+        AnnotationInfo createdAnnotation = SwaggerAnnotationFactory.createHttpCreatedResponse(
+                DocumentGeneratorUtils.createdSuccess(handledEntity.getDescription()));
+        AnnotationInfo responses = SwaggerAnnotationFactory.apiResponses(notFoundAnnotation, createdAnnotation);
+
+        // 创建相关的指令
+        List<IInstruction> instructionList = new ArrayList<>();
+
+        // #1 调用 Service 类
+        {
+            IInstruction serviceInvokeInstruction = InstructionFactory.variableDeclaration(
+                    handlerEntityClass.getType(), newHandlerEntityVariable,
+                    ValueExpressionFactory.variable(handledServiceFieldName)
+                            .invokeMethod(methodName, new Object[]{
+                                    ValueExpressionFactory.variable(idParameter.getName()),
+                                    ValueExpressionFactory.variable(bodyParameter.getName())
+                            }));
+            instructionList.add(serviceInvokeInstruction);
+        }
+
+        // #2 根据 Service 的结果返回相应的内容
+        {
+            IValueExpression condition = ValueExpressionFactory.logicalEqual(
+                    newHandlerEntityValueExpression, ValueExpressionFactory.nullExpression());
+
+            // 转换成资源类的值表达式
+            IValueExpression resourceAssemblyValue =
+                    handlerAssemblerFieldValueExpression.invokeMethod("toResource", newHandlerEntityValueExpression);
+
+            // #3 如果是空则创建一个没有任何数据的实体类
+            IInstruction assignmentInstruction = InstructionFactory.assignment(
+                    newHandlerEntityValueExpression, ValueExpressionFactory.invokeConstructor(handlerEntityClass.getType()));
+
+            // #4 返回空数据并携带 404 响应码给用户
+            IValueExpression notFoundValue = ValueExpressionFactory
+                    .invokeConstructor(SpringMVCTypeFactory.responseEntity(handlerResourceClass.getType()), new Object[]{
+                            resourceAssemblyValue, SpringMVCValueExpressionFactory.httpStatusNotFound()
+                    });
+            IInstruction notFoundInstruction = InstructionFactory.returnInstruction(notFoundValue);
+
+            // #5 正常执行并返回有效的数据给用户
+            IValueExpression successValue = ValueExpressionFactory
+                    .invokeConstructor(SpringMVCTypeFactory.responseEntity(handlerResourceClass.getType()), new Object[]{
+                            resourceAssemblyValue, SpringMVCValueExpressionFactory.httpStatusCreated()
+                    });
+            IInstruction successReturnInstruction = InstructionFactory.returnInstruction(successValue);
+
+            ChoiceFlowBuilder builder = new ChoiceFlowBuilder()
+                    .setIfBlock(condition, InstructionFactory.sequence(assignmentInstruction, notFoundInstruction))
+                    .setElse(successReturnInstruction);
+            IInstruction ifInstruction = builder.build();
+
+            instructionList.add(ifInstruction);
+        }
+
+        return new MethodInfo()
+                .setReturnValueType(returnType)
+                .setName(methodName)
+                .addParameter(idParameter)
+                .addParameter(bodyParameter)
+                .addAnnotationInfo(postMapping)
+                .addAnnotationInfo(apiOperation)
+                .addAnnotationInfo(responses)
+                .setRootInstruction(InstructionFactory.sequence(instructionList));
     }
 }

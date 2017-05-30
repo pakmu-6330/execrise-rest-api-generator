@@ -90,8 +90,19 @@ public interface IServiceInstructionConverter extends IConverter {
      * @param handler        关联关系信息
      * @param idVariable     一方对象唯一标识符变量名
      * @param entityVariable 多方对象对象变量名
-     * @return
+     * @return 处理这个多方对象创建的指令
      */
-    IInstruction handledEntityToManyCreatedInstruction(ConvertDataContext.RelationshipHandler handler,
-                                                       String idVariable, String entityVariable);
+    IInstruction entityToManyCreatedInstructionForHandler(ConvertDataContext.RelationshipHandler handler,
+                                                          String idVariable, String entityVariable);
+
+    /**
+     * 用于在作为被维护方的一方中添加一个多方对象的指令生成
+     *
+     * @param handler               关联关系信息
+     * @param handledIdVariable     一方对象唯一标识符变量名
+     * @param handlerEntityVariable 多方对象对象变量名
+     * @return 处理这个多方对象创建的指令
+     */
+    IInstruction entityManyToOneCreatedInstructionForHandled(ConvertDataContext.RelationshipHandler handler,
+                                                             String handledIdVariable, String handlerEntityVariable);
 }
