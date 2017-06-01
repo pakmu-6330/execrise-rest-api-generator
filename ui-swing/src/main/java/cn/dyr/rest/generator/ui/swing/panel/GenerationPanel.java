@@ -1,5 +1,8 @@
 package cn.dyr.rest.generator.ui.swing.panel;
 
+import cn.dyr.rest.generator.bridge.channel.IMessageConsumer;
+import cn.dyr.rest.generator.bridge.channel.MessageChannel;
+import cn.dyr.rest.generator.bridge.message.Message;
 import cn.dyr.rest.generator.ui.swing.SwingUIApplication;
 import cn.dyr.rest.generator.ui.swing.context.ProjectGenerator;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
@@ -36,7 +39,8 @@ import java.util.UUID;
  * @author DENG YURONG
  * @version 0.1.0001
  */
-public class GenerationPanel extends JPanel implements ActionListener, UUIDIdentifier {
+public class GenerationPanel extends JPanel
+        implements ActionListener, UUIDIdentifier, IMessageConsumer {
 
     private static Logger logger;
 
@@ -155,6 +159,31 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
         return this.id;
     }
 
+    @Override
+    public void processMessage(Message message) {
+        if (message.getType() != Message.TYPE_GENERATE_PROGRESS) {
+            return;
+        }
+
+        String strMsg = message.getData().toString();
+        EventQueue.invokeLater(new LogPrintRunnable("core", strMsg));
+    }
+
+    private class LogPrintRunnable implements Runnable {
+        private String prefix;
+        private String data;
+
+        LogPrintRunnable(String prefix, String data) {
+            this.prefix = prefix;
+            this.data = data;
+        }
+
+        @Override
+        public void run() {
+            logArea.append(String.format("%s> %s%s", this.prefix, this.data, System.lineSeparator()));
+        }
+    }
+
     private class GenerateThread implements Runnable {
 
         private boolean executableFileGenerated;
@@ -178,8 +207,14 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
                 return;
             }
 
+            MessageChannel defaultChannel = MessageChannel.getDefaultChannel();
+
             try {
                 setInputEnabled(false);
+
+                // 注册消息监听
+                EventQueue.invokeLater(() -> logArea.setText(""));
+                defaultChannel.addConsumer(GenerationPanel.this);
 
                 // 生成代码文件
                 ProjectGenerator generator = new ProjectGenerator(SwingUIApplication.getInstance().getCurrentProjectContext());
@@ -216,6 +251,8 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
                 MessageBoxUtils.showExceptionMessageBox(GenerationPanel.this, e);
             } finally {
                 setInputEnabled(true);
+
+                defaultChannel.removeConsumer(GenerationPanel.this);
             }
         }
     }
@@ -240,7 +277,7 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
             try {
                 while ((strLine = reader.readLine()) != null) {
                     final String finalLine = strLine;
-                    EventQueue.invokeLater(() -> logArea.append(prefix + ">" + finalLine + System.lineSeparator()));
+                    EventQueue.invokeLater(() -> logArea.append(prefix + "> " + finalLine + System.lineSeparator()));
                 }
 
                 logger.debug("thread {} end", prefix);

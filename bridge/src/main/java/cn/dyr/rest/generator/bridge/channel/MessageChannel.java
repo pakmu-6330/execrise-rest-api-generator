@@ -1,11 +1,9 @@
 package cn.dyr.rest.generator.bridge.channel;
 
 import cn.dyr.rest.generator.bridge.message.Message;
+import cn.dyr.rest.generator.bridge.message.ReadOnlyMessage;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,9 +44,11 @@ public class MessageChannel {
                 return;
             }
 
+            ReadOnlyMessage readOnlyMessage = ReadOnlyMessage.fromMessage(message);
+
             for (int i = 0; i < consumerSet.size(); i++) {
                 for (IMessageConsumer consumer : consumerSet) {
-                    consumer.processMessage(message);
+                    consumer.processMessage(readOnlyMessage);
                 }
             }
         }

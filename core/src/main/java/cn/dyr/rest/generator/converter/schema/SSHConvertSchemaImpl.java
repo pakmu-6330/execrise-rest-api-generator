@@ -1,5 +1,7 @@
 package cn.dyr.rest.generator.converter.schema;
 
+import cn.dyr.rest.generator.bridge.channel.MessageChannel;
+import cn.dyr.rest.generator.bridge.message.Message;
 import cn.dyr.rest.generator.converter.ConvertDataContext;
 import cn.dyr.rest.generator.converter.ConverterConfig;
 import cn.dyr.rest.generator.converter.ConverterContext;
@@ -122,6 +124,12 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
 
     @ConverterInject(ConverterInjectType.FIELD)
     private IFieldConverter fieldConverter;
+
+    private MessageChannel messageChannel;
+
+    public SSHConvertSchemaImpl() {
+        this.messageChannel = MessageChannel.getDefaultChannel();
+    }
 
     @Override
     public void getConverterList(SchemaConverterList schemaConverterList) {
@@ -418,6 +426,13 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
         }
     }
 
+    private void pushProgressMessage(String message) {
+        Message msgObj = new Message();
+        msgObj.setType(Message.TYPE_GENERATE_PROGRESS);
+        msgObj.setData(message);
+
+        messageChannel.pushMessage(msgObj);
+    }
 
     @Override
     public boolean generate() {
@@ -428,36 +443,47 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
 
         // 创建主类
         createSpringBootRootApplication();
+        pushProgressMessage("Spring Boot 主类创建生活完毕");
 
         // 创建 Swagger 的配置类
         createSwaggerConfigClass();
+        pushProgressMessage("Swagger 配置类生成完毕");
 
         // 创建异常类
         createExceptionClasses();
+        pushProgressMessage("异常类生成完毕");
 
         // 先创建共有类
         createCommonClasses();
+        pushProgressMessage("通用类生成完毕");
 
         // 生成实体类（PO 类）
         createEntityClasses();
+        pushProgressMessage("实体类生成完毕");
 
         // 生成 Spring Data DAO 接口
         createDaoInterfaces();
+        pushProgressMessage("DAO 接口生成完毕");
 
         // 生成 Service 类
         createServiceClasses();
+        pushProgressMessage("Service 接口和实现类生成完毕");
 
         // 创建 Controller 类
         createControllerClasses();
+        pushProgressMessage("Controller 类基本信息生成完毕");
 
         // 创建 HATEOAS 相关类
         createHateoasResourceClasses();
+        pushProgressMessage("HATEOAS 资源类生成完毕");
 
         // 创建 HATEOAS 资源装配类
         createResourceAssembler();
+        pushProgressMessage("HATEOAS 资源装配类生成完毕");
 
         // 完善 Controller 类信息
         fillControllerClass();
+        pushProgressMessage("Controller 类方法生成完毕");
 
         return true;
     }

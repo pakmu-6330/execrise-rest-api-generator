@@ -8,6 +8,26 @@ package cn.dyr.rest.generator.bridge.message;
  */
 public class Message {
 
+    public static final int TYPE_GENERATE_PROGRESS = 1;
 
+    private int type;
+    private Object data;
 
+    public int getType() {
+        return type;
+    }
+
+    public Message setType(int type) {
+        this.type = type;
+        return this;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public Message setData(Object data) {
+        this.data = data;
+        return this;
+    }
 }

@@ -28,6 +28,11 @@
             <version>0.1.0001</version>
         </dependency>
         <dependency>
+            <groupId>cn.dyr</groupId>
+            <artifactId>rest-api-generator-bridge</artifactId>
+            <version>0.1.0001</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
             <version>4.3.8.RELEASE</version>

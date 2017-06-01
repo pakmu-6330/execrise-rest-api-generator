@@ -28,4 +28,23 @@ public class ReadOnlyMessage extends Message {
         return new ReadOnlyMessage(message);
     }
 
+    @Override
+    public int getType() {
+        return this.message.getType();
+    }
+
+    @Override
+    public Object getData() {
+        return this.message.getData();
+    }
+
+    @Override
+    public Message setData(Object data) {
+        return this;
+    }
+
+    @Override
+    public Message setType(int type) {
+        return this;
+    }
 }
