@@ -4,7 +4,6 @@ import cn.dyr.rest.generator.ui.swing.SwingUIApplication;
 import cn.dyr.rest.generator.ui.swing.context.ProjectGenerator;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
 import cn.dyr.rest.generator.ui.swing.util.MessageBoxUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,15 +17,17 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.border.Border;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.UUID;
 
 /**
@@ -196,15 +197,17 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
                             String.format("JAVA_HOME=%s", javaHomeValue),
                             String.format("CLASSPATH=%s", classpath)
                     }, targetDir);
+                    InputStream stdout = process.getInputStream();
+                    StreamOutputThread stdoutShowThread = new StreamOutputThread(stdout, "maven(out)");
+                    stdoutShowThread.start();
+
+                    InputStream stderr = process.getErrorStream();
+                    StreamOutputThread stderrShowThread = new StreamOutputThread(stderr, "maven(err)");
+                    stderrShowThread.start();
+
                     int code = process.waitFor();
 
                     logger.info("mvn return code: {}", code);
-
-                    InputStream errorStream = process.getErrorStream();
-                    String content = IOUtils.toString(errorStream, "GBK");
-
-                    logger.info("stderr:");
-                    logger.info("{}", content);
                 }
 
                 EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(GenerationPanel.this, "代码生成成功！"));
@@ -213,6 +216,36 @@ public class GenerationPanel extends JPanel implements ActionListener, UUIDIdent
                 MessageBoxUtils.showExceptionMessageBox(GenerationPanel.this, e);
             } finally {
                 setInputEnabled(true);
+            }
+        }
+    }
+
+    /**
+     * 这是一个用于从其他进程的标准书橱流里面读取数据并及时输出的线程
+     */
+    private class StreamOutputThread extends Thread {
+        private InputStream inputStream;
+        private String prefix;
+
+        StreamOutputThread(InputStream inputStream, String prefix) {
+            this.inputStream = inputStream;
+            this.prefix = prefix;
+        }
+
+        @Override
+        public void run() {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String strLine = null;
+
+            try {
+                while ((strLine = reader.readLine()) != null) {
+                    final String finalLine = strLine;
+                    EventQueue.invokeLater(() -> logArea.append(prefix + ">" + finalLine + System.lineSeparator()));
+                }
+
+                logger.debug("thread {} end", prefix);
+            } catch (IOException ignored) {
+
             }
         }
     }
