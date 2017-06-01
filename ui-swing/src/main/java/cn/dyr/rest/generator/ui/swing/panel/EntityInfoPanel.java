@@ -27,7 +27,6 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -170,6 +169,17 @@ public class EntityInfoPanel extends JPanel implements DataPanel, ActionListener
     public static EntityInfoPanel fromExistsEntity(EntityModel entityModel) {
         EntityInfoPanel retValue = new EntityInfoPanel();
         retValue.newEntity = false;
+        retValue.projectContext = SwingUIApplication.getInstance().getCurrentProjectContext();
+
+        retValue.entityModel = entityModel;
+        retValue.fillFromData();
+
+        return retValue;
+    }
+
+    public static EntityInfoPanel newEntityBaseOn(EntityModel entityModel) {
+        EntityInfoPanel retValue = new EntityInfoPanel();
+        retValue.newEntity = true;
         retValue.projectContext = SwingUIApplication.getInstance().getCurrentProjectContext();
 
         retValue.entityModel = entityModel;

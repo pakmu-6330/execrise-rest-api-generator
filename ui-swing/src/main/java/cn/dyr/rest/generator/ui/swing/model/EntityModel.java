@@ -54,4 +54,14 @@ public class EntityModel implements Serializable, UUIDIdentifier {
         this.attributeModelList = attributeModelList;
         return this;
     }
+
+    public EntityModel addAttributeModel(AttributeModel attributeModel) {
+        if (this.attributeModelList == null) {
+            this.attributeModelList = new ArrayList<>();
+        }
+
+        this.attributeModelList.add(attributeModel);
+
+        return this;
+    }
 }

@@ -10,6 +10,7 @@ import cn.dyr.rest.generator.ui.swing.control.TabbedPaneEventListener;
 import cn.dyr.rest.generator.ui.swing.model.BasicInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.DBInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.EntityModel;
+import cn.dyr.rest.generator.ui.swing.model.EntityModelFactory;
 import cn.dyr.rest.generator.ui.swing.model.ProjectModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
@@ -116,6 +117,10 @@ public class MainWindow
     // 用于进行项目文件操作的文件选框
     private JFileChooser prjFileChooser;
 
+    // 用于创建常用实体的工具栏
+    private JMenu commonEntityCreate;
+    private JMenuItem userEntityCreateItem;
+
     private void initComponents() {
         this.setLocationByPlatform(true);
         this.setSize(1000, 600);
@@ -168,6 +173,19 @@ public class MainWindow
         this.quitMenuItem.setMnemonic('Q');
         this.quitMenuItem.setActionCommand(Commands.CMD_QUIT);
         this.fileMenu.add(this.quitMenuItem);
+
+        // 创建添加常用实体的按钮
+        this.commonEntityCreate = new JMenu("创建常用实体(C)");
+        this.commonEntityCreate.setMnemonic('C');
+
+        this.userEntityCreateItem = new JMenuItem("用户实体(U)");
+        this.userEntityCreateItem.setMnemonic('U');
+        this.userEntityCreateItem.addActionListener(this);
+        this.userEntityCreateItem.setActionCommand(Commands.CMD_CREATE_USER);
+
+        this.commonEntityCreate.add(this.userEntityCreateItem);
+
+        this.mainMenuBar.add(this.commonEntityCreate);
 
         // 工具栏
         this.mainToolBar = new JToolBar();
@@ -528,6 +546,12 @@ public class MainWindow
                 if (result == JOptionPane.YES_OPTION) {
                     createNewProject();
                 }
+            }
+            break;
+            case Commands.CMD_CREATE_USER: {
+                EntityInfoPanel userEntityPanel = EntityInfoPanel.newEntityBaseOn(EntityModelFactory.userModel());
+                this.tabbedPane.addTab("实体：" + userEntityPanel.getEntityName(), userEntityPanel);
+                this.tabbedPane.setSelectedComponent(userEntityPanel);
             }
             break;
         }

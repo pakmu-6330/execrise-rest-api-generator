@@ -53,4 +53,9 @@ public class Commands {
      */
     public static final String CMD_GENERATE_PROEJCT = "generate-project";
 
+    /**
+     * 表示创建用户实体的指令
+     */
+    public static final String CMD_CREATE_USER = "create-user";
+
 }
