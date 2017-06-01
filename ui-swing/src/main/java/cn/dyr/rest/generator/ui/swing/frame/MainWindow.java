@@ -172,6 +172,7 @@ public class MainWindow
         this.quitMenuItem.setText("退出(Q)");
         this.quitMenuItem.setMnemonic('Q');
         this.quitMenuItem.setActionCommand(Commands.CMD_QUIT);
+        this.quitMenuItem.addActionListener(this);
         this.fileMenu.add(this.quitMenuItem);
 
         // 创建添加常用实体的按钮
@@ -552,6 +553,10 @@ public class MainWindow
                 EntityInfoPanel userEntityPanel = EntityInfoPanel.newEntityBaseOn(EntityModelFactory.userModel());
                 this.tabbedPane.addTab("实体：" + userEntityPanel.getEntityName(), userEntityPanel);
                 this.tabbedPane.setSelectedComponent(userEntityPanel);
+            }
+            break;
+            case Commands.CMD_QUIT: {
+                System.exit(0);
             }
             break;
         }

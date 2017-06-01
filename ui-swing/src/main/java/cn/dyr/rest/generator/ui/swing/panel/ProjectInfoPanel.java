@@ -22,8 +22,9 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * 项目信息的面板
@@ -31,7 +32,8 @@ import java.util.function.Consumer;
  * @author DENG YURONG
  * @version 0.1.0001
  */
-public class ProjectInfoPanel extends JPanel implements DataPanel, ActionListener, UUIDIdentifier {
+public class ProjectInfoPanel extends JPanel
+        implements DataPanel, ActionListener, UUIDIdentifier, MouseListener {
 
     private String id;
     private boolean dirty;
@@ -45,6 +47,7 @@ public class ProjectInfoPanel extends JPanel implements DataPanel, ActionListene
     private JPanel bottomPanel;
 
     private JButton saveButton;
+    private JButton passwordSwitchButton;
 
     private JTextField developerName;
     private JTextField projectName;
@@ -174,12 +177,16 @@ public class ProjectInfoPanel extends JPanel implements DataPanel, ActionListene
 
         // 数据库密码
         this.dbPassword = new JPasswordField();
+        this.passwordSwitchButton = new JButton("查看密码");
+        this.passwordSwitchButton.addMouseListener(this);
 
         JLabel lbPassword = new JLabel("数据库密码：");
 
         JPanel dbPasswordPanel = new JPanel(new BorderLayout());
         dbPasswordPanel.add(lbPassword, BorderLayout.WEST);
         dbPasswordPanel.add(this.dbPassword, BorderLayout.CENTER);
+        dbPasswordPanel.add(this.passwordSwitchButton, BorderLayout.EAST);
+
         this.databaseInfoPanel.add(dbPasswordPanel);
 
         this.workPanel.add(this.databaseInfoPanel);
@@ -271,5 +278,36 @@ public class ProjectInfoPanel extends JPanel implements DataPanel, ActionListene
     @Override
     public String getId() {
         return this.id;
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        Object source = e.getSource();
+        if (source == this.passwordSwitchButton) {
+            dbPassword.setEchoChar('\0');
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        Object source = e.getSource();
+        if (source == this.passwordSwitchButton) {
+            dbPassword.setEchoChar('*');
+        }
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
     }
 }
