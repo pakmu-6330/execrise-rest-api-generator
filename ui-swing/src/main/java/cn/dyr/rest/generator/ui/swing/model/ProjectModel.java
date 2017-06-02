@@ -19,6 +19,7 @@ public class ProjectModel implements Serializable, UUIDIdentifier {
     private DBInfoModel dbInfo;
     private IdArrayList<EntityModel> entityList;
     private IdArrayList<RelationshipModel> relationshipList;
+    private ProjectConfigModel configModel;
 
     public static class IdArrayList<E> extends ArrayList<E> implements UUIDIdentifier {
 
@@ -49,6 +50,7 @@ public class ProjectModel implements Serializable, UUIDIdentifier {
     }
 
     public ProjectModel() {
+        this.configModel = new ProjectConfigModel();
         this.basicInfo = new BasicInfoModel();
         this.dbInfo = new DBInfoModel();
         this.entityList = new IdArrayList<>();
@@ -104,6 +106,15 @@ public class ProjectModel implements Serializable, UUIDIdentifier {
             this.relationshipList.addAll(relationshipList);
         }
 
+        return this;
+    }
+
+    public ProjectConfigModel getConfigModel() {
+        return configModel;
+    }
+
+    public ProjectModel setConfigModel(ProjectConfigModel configModel) {
+        this.configModel = configModel;
         return this;
     }
 }

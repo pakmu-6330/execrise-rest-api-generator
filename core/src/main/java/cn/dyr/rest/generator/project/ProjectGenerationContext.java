@@ -1,5 +1,6 @@
 package cn.dyr.rest.generator.project;
 
+import cn.dyr.rest.generator.converter.ConverterConfig;
 import cn.dyr.rest.generator.converter.ConverterContext;
 import cn.dyr.rest.generator.entity.EntityInfo;
 import cn.dyr.rest.generator.entity.EntityRelationship;
@@ -49,6 +50,9 @@ public class ProjectGenerationContext {
     private List<EntityInfo> entityInfoList;
     private List<EntityRelationship> relationshipList;
 
+    private String tablePrefix;
+    private String uriPrefix;
+
     public ProjectGenerationContext() {
         this.entityInfoList = new ArrayList<>();
         this.relationshipList = new ArrayList<>();
@@ -82,6 +86,24 @@ public class ProjectGenerationContext {
      */
     public ProjectGenerationContext addEntityRelationship(EntityRelationship relationship) {
         this.relationshipList.add(relationship);
+        return this;
+    }
+
+    public String getTablePrefix() {
+        return tablePrefix;
+    }
+
+    public ProjectGenerationContext setTablePrefix(String tablePrefix) {
+        this.tablePrefix = tablePrefix;
+        return this;
+    }
+
+    public String getUriPrefix() {
+        return uriPrefix;
+    }
+
+    public ProjectGenerationContext setUriPrefix(String uriPrefix) {
+        this.uriPrefix = uriPrefix;
         return this;
     }
 
@@ -162,10 +184,15 @@ public class ProjectGenerationContext {
         saveApplicationProperties(writer);
 
         // 3. 生成代码文件
-        // 3.1. 实体信息 -> 类元信息 -> 实体类对应的代码
         DefaultCodeGenerator codeGenerator = new DefaultCodeGenerator();
         ConverterContext converterContext = new ConverterContext(this.project);
 
+        // 3.0. 将代码生成配置信息应用到生成器当中
+        ConverterConfig config = converterContext.getConverterConfig();
+        config.setTablePrefix(tablePrefix);
+        config.setUriPrefix(uriPrefix);
+
+        // 3.1. 实体信息 -> 类元信息 -> 实体类对应的代码
         for (EntityInfo entityInfo : this.entityInfoList) {
             converterContext.addEntityInfo(entityInfo);
         }

@@ -5,6 +5,7 @@ import cn.dyr.rest.generator.ui.swing.model.AttributeModel;
 import cn.dyr.rest.generator.ui.swing.model.BasicInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.DBInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.EntityModel;
+import cn.dyr.rest.generator.ui.swing.model.ProjectConfigModel;
 import cn.dyr.rest.generator.ui.swing.model.ProjectModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 import org.springframework.beans.BeanUtils;
@@ -44,6 +45,12 @@ public class XMLAdapter {
         projectModel.setDbInfo(dbInfoModel);
 
         BeanUtils.copyProperties(xmlProject, dbInfoModel, "id");
+
+        // 配置信息
+        ProjectConfigModel configModel = new ProjectConfigModel();
+        projectModel.setConfigModel(configModel);
+
+        BeanUtils.copyProperties(xmlProject.getConfig(), configModel, "id");
 
         // 实体对象转换
         List<XMLEntity> xmlEntities = xmlProject.getEntities();
@@ -114,6 +121,12 @@ public class XMLAdapter {
         // 数据库信息
         DBInfoModel dbInfo = projectModel.getDbInfo();
         BeanUtils.copyProperties(dbInfo, retValue, "id");
+
+        // 代码生成配置信息
+        ProjectConfigModel configModel = projectModel.getConfigModel();
+        XMLConfig xmlConfig = new XMLConfig();
+        retValue.setConfig(xmlConfig);
+        BeanUtils.copyProperties(configModel, xmlConfig, "id");
 
         // 实体对象
         List<XMLEntity> entities = new ArrayList<>();

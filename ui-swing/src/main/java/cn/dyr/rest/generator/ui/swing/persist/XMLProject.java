@@ -17,7 +17,7 @@ import java.util.UUID;
 @XmlType(name = "project", propOrder = {
         "id", "projectName", "authorName", "version", "packageName",
         "dbType", "dbName", "dbHost", "dbUsername", "dbPassword",
-        "entities", "relationships"})
+        "config" ,"entities", "relationships"})
 public class XMLProject {
 
     private String id;
@@ -32,6 +32,8 @@ public class XMLProject {
     private String dbHost;
     private String dbUsername;
     private String dbPassword;
+
+    private XMLConfig config;
 
     private List<XMLEntity> entities;
     private List<XMLRelationship> relationships;
@@ -154,6 +156,16 @@ public class XMLProject {
 
     public XMLProject setRelationships(List<XMLRelationship> relationships) {
         this.relationships = relationships;
+        return this;
+    }
+
+    @XmlElement(name = "config")
+    public XMLConfig getConfig() {
+        return config;
+    }
+
+    public XMLProject setConfig(XMLConfig config) {
+        this.config = config;
         return this;
     }
 }

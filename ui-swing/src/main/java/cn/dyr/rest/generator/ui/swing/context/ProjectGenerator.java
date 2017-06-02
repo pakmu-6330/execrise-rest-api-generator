@@ -14,6 +14,7 @@ import cn.dyr.rest.generator.ui.swing.model.AttributeModel;
 import cn.dyr.rest.generator.ui.swing.model.BasicInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.DBInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.EntityModel;
+import cn.dyr.rest.generator.ui.swing.model.ProjectConfigModel;
 import cn.dyr.rest.generator.ui.swing.model.ProjectModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 
@@ -199,7 +200,11 @@ public class ProjectGenerator {
         ProjectGenerationContext projectGenerationContext = new ProjectGenerationContext();
 
         ProjectModel projectModel = this.context.getProjectModel();
+        ProjectConfigModel configModel = projectModel.getConfigModel();
+
         projectGenerationContext.setProject(fromProjectModel(projectModel));
+        projectGenerationContext.setTablePrefix(configModel.getTablePrefix());
+        projectGenerationContext.setUriPrefix(configModel.getUriPrefix());
 
         List<EntityModel> entityList = projectModel.getEntityList();
         for (EntityModel entityModel : entityList) {

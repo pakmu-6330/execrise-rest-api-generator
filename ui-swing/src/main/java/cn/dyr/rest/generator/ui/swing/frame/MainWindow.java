@@ -11,9 +11,11 @@ import cn.dyr.rest.generator.ui.swing.model.BasicInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.DBInfoModel;
 import cn.dyr.rest.generator.ui.swing.model.EntityModel;
 import cn.dyr.rest.generator.ui.swing.model.EntityModelFactory;
+import cn.dyr.rest.generator.ui.swing.model.ProjectConfigModel;
 import cn.dyr.rest.generator.ui.swing.model.ProjectModel;
 import cn.dyr.rest.generator.ui.swing.model.RelationshipModel;
 import cn.dyr.rest.generator.ui.swing.model.UUIDIdentifier;
+import cn.dyr.rest.generator.ui.swing.panel.ConfigPanel;
 import cn.dyr.rest.generator.ui.swing.panel.EntityInfoPanel;
 import cn.dyr.rest.generator.ui.swing.panel.GenerationPanel;
 import cn.dyr.rest.generator.ui.swing.panel.HomePanel;
@@ -398,11 +400,16 @@ public class MainWindow
                 saveNodeToModel(withIdNode.getId(), relationshipModel);
             }
 
+            // 添加代码生成的配置信息
+            WithIdNode configNode = new WithIdNode("4.生成配置");
+            ProjectConfigModel configModel = projectModel.getConfigModel();
+            saveNodeToModel(configNode.getId(), configModel);
+            rootNode.add(configNode);
+
             // 添加生成页面结点
-            WithIdNode generatingNode = new WithIdNode("4.代码生成");
+            WithIdNode generatingNode = new WithIdNode("5.代码生成");
             DBInfoModel dbInfo = projectModel.getDbInfo();
             saveNodeToModel(generatingNode.getId(), dbInfo);
-
             rootNode.add(generatingNode);
         }
     }
@@ -755,7 +762,7 @@ public class MainWindow
                 this.tabbedPane.setSelectedComponent(infoPanel);
             } else if (o instanceof DBInfoModel) {
                 GenerationPanel generationPanel = new GenerationPanel();
-                this.tabbedPane.addTab("4. 代码生成", generationPanel);
+                this.tabbedPane.addTab("5. 代码生成", generationPanel);
 
                 saveNodeToComponent(nodeId, generationPanel);
                 this.tabbedPane.setSelectedComponent(generationPanel);
@@ -771,6 +778,12 @@ public class MainWindow
 
                 saveNodeToComponent(nodeId, relationshipInfoPanel);
                 this.tabbedPane.setSelectedComponent(relationshipInfoPanel);
+            } else if (o instanceof ProjectConfigModel) {
+                ConfigPanel configPanel = new ConfigPanel();
+                this.tabbedPane.addTab("4. 生成配置", configPanel);
+
+                saveNodeToComponent(nodeId, configPanel);
+                this.tabbedPane.setSelectedComponent(configPanel);
             }
 
         } else {
