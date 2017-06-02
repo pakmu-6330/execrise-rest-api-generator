@@ -14,10 +14,16 @@ public class ProjectConfigModel implements UUIDIdentifier {
     private String uriPrefix;
     private String tablePrefix;
 
+    private int port;
+    private int pageSize;
+
     public ProjectConfigModel() {
         this.id = UUID.randomUUID().toString();
+
         this.uriPrefix = "";
         this.tablePrefix = "";
+        this.port = 8080;
+        this.pageSize = 5;
     }
 
     @Override
@@ -40,6 +46,24 @@ public class ProjectConfigModel implements UUIDIdentifier {
 
     public ProjectConfigModel setTablePrefix(String tablePrefix) {
         this.tablePrefix = tablePrefix;
+        return this;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public ProjectConfigModel setPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public ProjectConfigModel setPageSize(int pageSize) {
+        this.pageSize = pageSize;
         return this;
     }
 }

@@ -38,5 +38,18 @@ public class StringUtils {
         return str.substring(0, 1).toLowerCase() + str.substring(1);
     }
 
-
+    /**
+     * 给定的字符串能够被转换为整数
+     *
+     * @param str 字符串
+     * @return 一个布尔值，表示这个字符串能否被转换为整数
+     */
+    public static boolean canBeConvertedToInteger(String str) {
+        try {
+            int tryConvert = Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 }

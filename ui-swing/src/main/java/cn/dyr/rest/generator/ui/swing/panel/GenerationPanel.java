@@ -222,29 +222,36 @@ public class GenerationPanel extends JPanel
 
                 // 对代码进行打包
                 if (executableFileGenerated) {
+                    // 获得当前系统的环境变量
                     String pathValue = System.getenv("Path");
                     String javaHomeValue = System.getenv("JAVA_HOME");
                     String classpath = System.getenv("CLASSPATH");
 
+                    // 调用外部的构建工具
                     Runtime currentRunTime = Runtime.getRuntime();
                     Process process = currentRunTime.exec("cmd /c mvn package", new String[]{
                             String.format("Path=%s", pathValue),
                             String.format("JAVA_HOME=%s", javaHomeValue),
                             String.format("CLASSPATH=%s", classpath)
                     }, targetDir);
+
+                    // 对构建工具的标准输出流进行重定向
                     InputStream stdout = process.getInputStream();
                     StreamOutputThread stdoutShowThread = new StreamOutputThread(stdout, "maven(out)");
                     stdoutShowThread.start();
 
+                    // 对构建工具的错误输出流进行重定向
                     InputStream stderr = process.getErrorStream();
                     StreamOutputThread stderrShowThread = new StreamOutputThread(stderr, "maven(err)");
                     stderrShowThread.start();
 
+                    // 等待构建工具返回处理结果
                     int code = process.waitFor();
 
                     logger.info("mvn return code: {}", code);
                 }
 
+                // 显示构建结果
                 EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(GenerationPanel.this, "代码生成成功！"));
             } catch (Exception e) {
                 logger.error("exception occurred during generating code...", e);

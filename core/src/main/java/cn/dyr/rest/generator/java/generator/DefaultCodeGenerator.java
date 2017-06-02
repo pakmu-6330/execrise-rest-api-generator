@@ -45,51 +45,51 @@ public class DefaultCodeGenerator implements ICodeGenerator {
         ClassInfoAnalyzer classAnalyzer = new ClassInfoAnalyzer();
         classAnalyzer.loadClass(classInfo);
 
-        // 创建一个环境，用于统一对 import 类型的管理
+        // 上下文重置，确保不会因为老旧数据影响生成结果
         ImportedTypeManager.remove();
         ImportedTypeManager typeManager = ImportedTypeManager.get().setCurrentPackage(classInfo.getPackageName());
 
-        // 这里先添加普通的引入
+        // 处理分析得到的 import 语句
         Iterator<ImportStatement> importStatementIterator = classAnalyzer.iterateImportStatements();
         while (importStatementIterator.hasNext()) {
             ImportStatement importStatement = importStatementIterator.next();
             typeManager.addImportType(importStatement.getTypeInfo());
         }
 
-        // 这里添加静态引入
+        // 处理分析得到的静态 import 语句
         Iterator<ImportStatement> staticImportStatementIterator = classAnalyzer.iterateStaticImportStatement();
         while (staticImportStatementIterator.hasNext()) {
             ImportStatement importStatement = staticImportStatementIterator.next();
             typeManager.addStaticImport(importStatement.getTypeInfo(), importStatement.getMethodName());
         }
 
-        // 1. 添加包声明语句
+        // 生成包声明语句
         IStatement packageStatement = classAnalyzer.getPackageStatement();
         targetCode.append(packageStatement.toString());
         targetCode.append(ElementsConstant.LINE_SEPARATOR);
         targetCode.append(ElementsConstant.LINE_SEPARATOR);
 
-        // 2. 处理 import 语句
+        //  产生 import 语句
         List<IStatement> allImportedStatement = new ArrayList<>();
         if (config.isStaticImportSeparation()) {
-
-            // 导入普通的 import 操作
+            // 产生普通的 import 语句
             List<ImportedTypeManager.ImportItem> ordinaryImportItem = typeManager.getOrdinaryImportItem();
             mergeImportList(allImportedStatement, ordinaryImportItem);
 
-            // 添加一个空白的语句
+            // 产生一个空白行，提高代码可读性
             allImportedStatement.add(new EmptyStatement());
 
-            // 导入静态的 static 操作
+            // 产生静态 import 语句
             List<ImportedTypeManager.ImportItem> staticImportItem = typeManager.getStaticImportItem();
             mergeImportList(allImportedStatement, staticImportItem);
 
         } else {
+            // 产生所有的 import 语句
             List<ImportedTypeManager.ImportItem> allImportItemList = typeManager.getAllImportItemList();
             mergeImportList(allImportedStatement, allImportItemList);
         }
 
-        // 3. 输出 import 语句
+        // 将上一步产生的 import 语句转换为实际的代码
         for (IStatement importStatement : allImportedStatement) {
             targetCode.append(importStatement.toString());
 
@@ -98,7 +98,7 @@ public class DefaultCodeGenerator implements ICodeGenerator {
             }
         }
 
-        // 4. 处理类本身的语句
+        // 生成这个类对应的最终代码
         ClassStatement classStatement = new ClassStatement(classInfo);
 
         if (allImportedStatement.size() != 0) {

@@ -205,6 +205,8 @@ public class ProjectGenerator {
         projectGenerationContext.setProject(fromProjectModel(projectModel));
         projectGenerationContext.setTablePrefix(configModel.getTablePrefix());
         projectGenerationContext.setUriPrefix(configModel.getUriPrefix());
+        projectGenerationContext.setPort(configModel.getPort());
+        projectGenerationContext.setPageSize(configModel.getPageSize());
 
         List<EntityModel> entityList = projectModel.getEntityList();
         for (EntityModel entityModel : entityList) {

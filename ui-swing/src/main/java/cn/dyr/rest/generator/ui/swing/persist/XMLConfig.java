@@ -10,11 +10,15 @@ import javax.xml.bind.annotation.XmlType;
  * @version 0.1.0001
  */
 @XmlRootElement
-@XmlType(name = "config", propOrder = {"tablePrefix", "uriPrefix"})
+@XmlType(name = "config", propOrder = {"tablePrefix", "uriPrefix",
+        "pageSize", "port"})
 public class XMLConfig {
 
     private String tablePrefix;
     private String uriPrefix;
+
+    private int pageSize;
+    private int port;
 
     public String getTablePrefix() {
         return tablePrefix;
@@ -31,6 +35,24 @@ public class XMLConfig {
 
     public XMLConfig setUriPrefix(String uriPrefix) {
         this.uriPrefix = uriPrefix;
+        return this;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public XMLConfig setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+        return this;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public XMLConfig setPort(int port) {
+        this.port = port;
         return this;
     }
 }

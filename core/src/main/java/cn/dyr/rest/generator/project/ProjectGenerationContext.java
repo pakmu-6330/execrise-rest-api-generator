@@ -31,6 +31,7 @@ import static cn.dyr.rest.generator.framework.spring.boot.SpringBootProperties.D
 import static cn.dyr.rest.generator.framework.spring.boot.SpringBootProperties.JPA_HIBERNATE_DDL_AUTO;
 import static cn.dyr.rest.generator.framework.spring.boot.SpringBootProperties.JPA_HIBERNATE_DDL_AUTO_VALUE_UPDATE;
 import static cn.dyr.rest.generator.framework.spring.boot.SpringBootProperties.JPA_SHOW_SQL;
+import static cn.dyr.rest.generator.framework.spring.boot.SpringBootProperties.SERVER_PORT;
 
 /**
  * 项目生成上下文
@@ -52,10 +53,17 @@ public class ProjectGenerationContext {
 
     private String tablePrefix;
     private String uriPrefix;
+    private int port;
+    private int pageSize;
 
     public ProjectGenerationContext() {
         this.entityInfoList = new ArrayList<>();
         this.relationshipList = new ArrayList<>();
+
+        this.tablePrefix = "";
+        this.uriPrefix = "";
+        this.port = 8080;
+        this.pageSize = 5;
     }
 
     public Project getProject() {
@@ -107,6 +115,24 @@ public class ProjectGenerationContext {
         return this;
     }
 
+    public int getPort() {
+        return port;
+    }
+
+    public ProjectGenerationContext setPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public ProjectGenerationContext setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+        return this;
+    }
+
     private void saveApplicationProperties(SourceWriter writer) throws IOException {
         IJdbcConfig config = project.getJdbcConfig();
 
@@ -118,6 +144,8 @@ public class ProjectGenerationContext {
 
         properties.setProperty(JPA_HIBERNATE_DDL_AUTO, JPA_HIBERNATE_DDL_AUTO_VALUE_UPDATE);
         properties.setProperty(JPA_SHOW_SQL, "true");
+
+        properties.setProperty(SERVER_PORT, String.valueOf(port));
 
         writer.writePropertiesToResourceDir("application.properties", properties);
     }
@@ -191,6 +219,7 @@ public class ProjectGenerationContext {
         ConverterConfig config = converterContext.getConverterConfig();
         config.setTablePrefix(tablePrefix);
         config.setUriPrefix(uriPrefix);
+        config.setDefaultPageSize(this.pageSize);
 
         // 3.1. 实体信息 -> 类元信息 -> 实体类对应的代码
         for (EntityInfo entityInfo : this.entityInfoList) {

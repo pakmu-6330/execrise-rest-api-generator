@@ -58,6 +58,7 @@ public class ConverterConfig {
     private String uriPrefix;
 
     private int defaultPageSize;
+    private int port;
 
     private boolean builderStyleSetter;
     private boolean pagingEnabled;
@@ -552,6 +553,15 @@ public class ConverterConfig {
      */
     public ConverterConfig setTablePrefix(String tablePrefix) {
         this.tablePrefix = tablePrefix;
+        return this;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public ConverterConfig setPort(int port) {
+        this.port = port;
         return this;
     }
 

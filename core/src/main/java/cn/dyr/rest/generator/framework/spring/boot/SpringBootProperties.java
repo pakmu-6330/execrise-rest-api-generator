@@ -42,4 +42,9 @@ public class SpringBootProperties {
      * Spring Boot Data JPA 是否启用 SQL 语句的显示
      */
     public static final String JPA_SHOW_SQL = "spring.jpa.show-sql";
+
+    /**
+     * Spring Boot 指定的端口号
+     */
+    public static final String SERVER_PORT = "server.port";
 }
