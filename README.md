@@ -11,7 +11,7 @@
 * `bridge`：类似消息总线的东西
 
 ## 运行方法
-目前已经完整实现的用户界面只有 `ui-swing`，运行 `ui-swing` 中的 `cn.dyr.rest.generator.ui.swing.SwingUIApplication` 可以运行
+目前已经完整实现的用户界面只有 `ui-swing`，运行 `ui-swing` 中的 `cn.dyr.rest.generator.ui.swing.SwingUIApplication` 可以以桌面程序的方式启动
 
 ## 一些说明
 * 在代码生成以后的打包功能需要 Maven，并且 Maven 相关的环境变量也必须配置好。（`PATH` 环境变量中有 `mvn` 的路径）
