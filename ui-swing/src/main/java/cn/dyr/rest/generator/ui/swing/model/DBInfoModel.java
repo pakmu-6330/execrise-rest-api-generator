@@ -24,7 +24,7 @@ public class DBInfoModel implements Serializable, UUIDIdentifier {
         this.dbHost = "localhost";
         this.dbName = "spring";
         this.dbUsername = "root";
-        this.dbPassword = "popkart.alex9498";
+        this.dbPassword = "root";
 
         this.id = UUID.randomUUID().toString();
     }

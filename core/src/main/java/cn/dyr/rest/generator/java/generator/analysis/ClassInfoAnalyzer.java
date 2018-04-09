@@ -91,12 +91,7 @@ public class ClassInfoAnalyzer {
             ImportedOperation importedOperation = importedOperationIterator.next();
 
             String name = importedOperation.getTypeInfo().getName();
-            List<ImportedOperation> sameClassNameList = operations.get(name);
-
-            if (sameClassNameList == null) {
-                sameClassNameList = new ArrayList<>();
-                operations.put(name, sameClassNameList);
-            }
+            List<ImportedOperation> sameClassNameList = operations.computeIfAbsent(name, k -> new ArrayList<>());
 
             sameClassNameList.add(importedOperation);
         }
@@ -108,12 +103,7 @@ public class ClassInfoAnalyzer {
             ImportedOperation staticImport = staticImporterIterator.next();
 
             String methodName = staticImport.getMethodName();
-            List<ImportedOperation> operationList = staticOperations.get(methodName);
-
-            if (operationList == null) {
-                operationList = new ArrayList<>();
-                staticOperations.put(methodName, operationList);
-            }
+            List<ImportedOperation> operationList = staticOperations.computeIfAbsent(methodName, k -> new ArrayList<>());
 
             operationList.add(staticImport);
         }
