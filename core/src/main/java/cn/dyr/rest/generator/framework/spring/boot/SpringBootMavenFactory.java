@@ -32,11 +32,11 @@ public class SpringBootMavenFactory {
      * @param version Spring Boot 的版本
      * @return 指定版本的 Spring Boot 的父 pom 文件信息
      */
-    public static MavenParent parentPOM(String version) {
+    public static MavenParent parentPOM(SpringBootVersion version) {
         MavenCoordinate coordinate = new MavenCoordinate()
                 .setGroupId(SPRING_BOOT_GROUP_ID)
                 .setArtifactId("spring-boot-starter-parent")
-                .setVersion(version);
+                .setVersion(version.toString());
         return new MavenParent()
                 .setCoordinate(coordinate)
                 .setRelativePath(null);

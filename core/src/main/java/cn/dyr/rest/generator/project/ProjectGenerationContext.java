@@ -169,7 +169,7 @@ public class ProjectGenerationContext {
         // 将本项目的 POM 文件继承 spring boot
         retValue.setCoordinate(thisProject);
         retValue.setName(project.getProjectName());
-        retValue.setParent(SpringBootMavenFactory.parentPOM(SpringBootVersion.VER_1_5_2));
+        retValue.setParent(SpringBootMavenFactory.parentPOM(project.getSpringBootVersion()));
 
         // 往项目中添加一些需要的 starter 依赖
         retValue.addDependency(SpringBootMavenFactory.tomcatStarter());

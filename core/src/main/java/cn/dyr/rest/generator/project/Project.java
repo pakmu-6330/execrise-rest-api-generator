@@ -1,5 +1,6 @@
 package cn.dyr.rest.generator.project;
 
+import cn.dyr.rest.generator.framework.spring.boot.SpringBootVersion;
 import cn.dyr.rest.generator.project.database.IJdbcConfig;
 
 /**
@@ -15,6 +16,12 @@ public class Project {
     private String version;
     private IJdbcConfig jdbcConfig;
     private String basePackage;
+
+    private SpringBootVersion springBootVersion;
+
+    public Project() {
+        this.springBootVersion = SpringBootVersion.VER_1_5_12;
+    }
 
     public String getAuthor() {
         return author;
@@ -58,6 +65,15 @@ public class Project {
 
     public Project setBasePackage(String basePackage) {
         this.basePackage = basePackage;
+        return this;
+    }
+
+    public SpringBootVersion getSpringBootVersion() {
+        return springBootVersion;
+    }
+
+    public Project setSpringBootVersion(SpringBootVersion springBootVersion) {
+        this.springBootVersion = springBootVersion;
         return this;
     }
 }
