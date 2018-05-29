@@ -38,4 +38,9 @@ public class SpringDataConstant {
      */
     public static final String QUERY_ANNOTATION = "org.springframework.data.jpa.repository.Query";
 
+    /**
+     * Spring Data 返回的 Optional 对象
+     */
+    public static final String TYPE_OPTIONAL = "java.util.Optional";
+
 }

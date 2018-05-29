@@ -74,4 +74,13 @@ public class SpringMVCTypeFactory {
     public static TypeInfo webMvcConfigurerAdapter() {
         return TypeInfoFactory.fromClass(SpringMVCConstant.WEB_MVC_CONFIGURER_ADAPTER);
     }
+
+    /**
+     * 创建一个 WebMvcConfigurer 接口的类型信息
+     *
+     * @return 类型信息
+     */
+    public static TypeInfo webMvcConfigurer() {
+        return TypeInfoFactory.fromClass(SpringMVCConstant.WEB_MVC_CONFIGURER_INTERFACE);
+    }
 }

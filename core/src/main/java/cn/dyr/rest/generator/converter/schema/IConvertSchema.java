@@ -1,6 +1,7 @@
 package cn.dyr.rest.generator.converter.schema;
 
 import cn.dyr.rest.generator.converter.IConverter;
+import cn.dyr.rest.generator.project.Project;
 
 /**
  * 表示一种转换方式的抽象
@@ -20,8 +21,9 @@ public interface IConvertSchema extends IConverter {
     /**
      * 对实体信息和关系信息进行转换
      *
+     * @param project 项目对象
      * @return 如果转换成功，返回 true；否则返回 false
      */
-    boolean generate();
+    boolean generate(Project project);
 
 }

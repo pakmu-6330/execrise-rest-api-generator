@@ -156,7 +156,11 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
                 .setClassName("MainApplication");
 
         if (this.converterConfig.isCrossOriginEnabled()) {
-            mainClass.extendClass(SpringMVCTypeFactory.webMvcConfigurerAdapter());
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                mainClass.extendClass(SpringMVCTypeFactory.webMvcConfigurerAdapter());
+            } else {
+                mainClass.implementInterface(SpringMVCTypeFactory.webMvcConfigurer());
+            }
         }
 
         // 2. 创建相应的注解
@@ -200,11 +204,17 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
                     .invoke("allowedMethods", "*")
                     .invoke("maxAge", 3600);
 
-            crosConfigMethod.setRootInstruction(InstructionFactory.sequence(
-                    parentAddCrosMappingsInstruction,
-                    InstructionFactory.emptyInstruction(),
-                    configInstruction
-            ));
+            IInstruction rootInstruction = null;
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                rootInstruction = InstructionFactory.sequence(
+                        parentAddCrosMappingsInstruction,
+                        InstructionFactory.emptyInstruction(),
+                        configInstruction);
+            } else {
+                rootInstruction = configInstruction;
+            }
+
+            crosConfigMethod.setRootInstruction(rootInstruction);
 
             mainClass.addMethod(crosConfigMethod);
         }
@@ -435,7 +445,7 @@ public class SSHConvertSchemaImpl implements IConvertSchema {
     }
 
     @Override
-    public boolean generate() {
+    public boolean generate(Project project) {
         if (this.entityInfoList == null || this.entityInfoList.size() == 0) {
             logger.debug("generation was terminated because no entity was found in context");
             return false;

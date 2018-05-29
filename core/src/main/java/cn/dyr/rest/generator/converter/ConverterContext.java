@@ -632,6 +632,6 @@ public class ConverterContext {
      * 将 context 对象当中所有的对象转换成 classInfo 元信息
      */
     public void generate() {
-        this.convertSchema.generate();
+        this.convertSchema.generate(project);
     }
 }

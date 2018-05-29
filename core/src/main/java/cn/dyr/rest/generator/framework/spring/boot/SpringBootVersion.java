@@ -74,13 +74,19 @@ public enum SpringBootVersion {
     VER_2_0_1("2.0.1.RELEASE");
 
     String version;
+    int majorVersion;
 
     SpringBootVersion(String version) {
         this.version = version;
+        this.majorVersion = Integer.parseInt(version.substring(0, 1));
     }
 
     @Override
     public java.lang.String toString() {
         return this.version;
+    }
+
+    public int getMajorVersion() {
+        return this.majorVersion;
     }
 }

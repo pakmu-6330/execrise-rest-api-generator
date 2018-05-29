@@ -20,7 +20,7 @@ public class Project {
     private SpringBootVersion springBootVersion;
 
     public Project() {
-        this.springBootVersion = SpringBootVersion.VER_1_5_12;
+        this.springBootVersion = SpringBootVersion.VER_2_0_1;
     }
 
     public String getAuthor() {

@@ -19,6 +19,7 @@ import cn.dyr.rest.generator.java.meta.factory.InstructionFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
+import cn.dyr.rest.generator.project.Project;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import com.sun.org.apache.bcel.internal.generic.IINC;
@@ -59,6 +60,9 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
     @DataInject(DataInjectType.CONFIG)
     private ConverterConfig converterConfig;
+
+    @DataInject(DataInjectType.PROJECT)
+    private Project project;
 
     @ConverterInject(ConverterInjectType.NAME)
     private INameConverter nameConverter;
@@ -122,12 +126,17 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
         });
 
         // #6 获得数据库中已有的关联对象
-        IInstruction getAndSetInstruction = invoke(entityVariable, setterMethod.getName(), new Object[]{
-                variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
-                        .invokeMethod("findOne", new Object[]{
-                        relatedEntityIdVariable
-                })
-        });
+        IValueExpression getExpression = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            getExpression = variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
+                    .invokeMethod("findOne", new Object[]{relatedEntityIdVariable});
+        } else {
+            getExpression = variable(convertDataContext.getDAODefaultFieldName(handledEntityName))
+                    .invokeMethod("findById", new Object[]{relatedEntityIdVariable})
+                    .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+        }
+
+        IInstruction getAndSetInstruction = invoke(entityVariable, setterMethod.getName(), new Object[]{getExpression});
 
         // #4 判断关联对象的唯一标识符是否为默认值
         IValueExpression relatedEntityIdIsDefault = logicalEqual(relatedEntityIdVariable,
@@ -207,14 +216,17 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
                 });
 
         // #8 获得数据库当中的记录，添加到新的集合当中
+        IValueExpression existsExpression = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            existsExpression = variable(handledDAOName).invokeMethod("findOne", variable(idName));
+        } else {
+            existsExpression = variable(handledDAOName).invokeMethod("findById", variable(idName))
+                    .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+        }
+
         IInstruction getExistsEntityInstruction = invoke(
                 variable(newCollectionName), "add",
-                new Object[]{
-                        variable(handledDAOName)
-                                .invokeMethod("findOne", new Object[]{
-                                variable(idName)
-                        })
-                });
+                new Object[]{existsExpression});
 
         // #6 级联保存还是从数据库里面重新取对象的判断指令
         IValueExpression saveOrGetIfValueExpression =
@@ -308,11 +320,18 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
                     }));
             instructions.add(reversedQueryInstruction);
         } else {
+            IValueExpression existsExpression = null;
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                existsExpression = ValueExpressionFactory.variable(handledDAODefaultFieldName)
+                        .invokeMethod("findOne", ValueExpressionFactory.variable(idVariableName));
+            } else {
+                existsExpression = ValueExpressionFactory.variable(handledDAODefaultFieldName)
+                        .invokeMethod("findById", ValueExpressionFactory.variable(idVariableName))
+                        .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            }
+
             // #1.1 寻找到指定编号的本对象
-            IInstruction findThisEntityInstruction = InstructionFactory.variableDeclaration(handledEntityClass.getType(), "entity",
-                    ValueExpressionFactory.variable(handledDAODefaultFieldName).invokeMethod("findOne", new Object[]{
-                            ValueExpressionFactory.variable(idVariableName)
-                    }));
+            IInstruction findThisEntityInstruction = InstructionFactory.variableDeclaration(handledEntityClass.getType(), "entity", existsExpression);
             instructions.add(findThisEntityInstruction);
 
             // #1.2 将这个对象关联的列表赋值到指定的变量上
@@ -404,10 +423,18 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #1 寻找关联维护方对象
         {
-            IValueExpression findOneValue = handlerDAOFieldValueExpression.invokeMethod(
-                    "findOne", new Object[]{ValueExpressionFactory.variable(idVariable)});
+            IValueExpression handlerValueExpression = null;
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                handlerValueExpression = handlerDAOFieldValueExpression
+                        .invokeMethod("findOne", ValueExpressionFactory.variable(idVariable));
+            } else {
+                handlerValueExpression = handlerDAOFieldValueExpression
+                        .invokeMethod("findById", ValueExpressionFactory.variable(idVariable))
+                        .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            }
+
             IInstruction findHandlerEntityInstruction = InstructionFactory.variableDeclaration(
-                    handlerEntityClass.getType(), handlerEntityVariableName, findOneValue);
+                    handlerEntityClass.getType(), handlerEntityVariableName, handlerValueExpression);
             instructionList.add(findHandlerEntityInstruction);
         }
 
@@ -539,8 +566,15 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #1 找到关联关系被控方的对象
         {
-            IValueExpression daoInvokeValueExpression = ValueExpressionFactory.variable(handledDAOFieldName)
-                    .invokeMethod("findOne", handledIdVariableValueExpression);
+            IValueExpression daoInvokeValueExpression = null;
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                daoInvokeValueExpression = ValueExpressionFactory.variable(handledDAOFieldName)
+                        .invokeMethod("findOne", handledIdVariableValueExpression);
+            } else {
+                daoInvokeValueExpression = ValueExpressionFactory.variable(handledDAOFieldName)
+                        .invokeMethod("findById", handledIdVariableValueExpression)
+                        .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            }
             IInstruction daoInvokeInstruction = InstructionFactory.variableDeclaration(
                     handledEntityClass.getType(), handledEntityVariable, daoInvokeValueExpression);
             instructionList.add(daoInvokeInstruction);
@@ -645,10 +679,18 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #1 根据维护方实体编号查找数据库中已经存在的实体
         {
+            IValueExpression daoInvokeExpression = null;
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                daoInvokeExpression = handlerDAOFieldValueExpression
+                        .invokeMethod("findOne", ValueExpressionFactory.variable(handlerIdVariable));
+            } else {
+                daoInvokeExpression = handlerDAOFieldValueExpression
+                        .invokeMethod("findById", ValueExpressionFactory.variable(handlerIdVariable))
+                        .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            }
+
             IInstruction findHandlerInstruction = InstructionFactory.variableDeclaration(
-                    handlerEntityClass.getType(), handlerEntityVariableName,
-                    handlerDAOFieldValueExpression.invokeMethod("findOne",
-                            ValueExpressionFactory.variable(handlerIdVariable)));
+                    handlerEntityClass.getType(), handlerEntityVariableName, daoInvokeExpression);
             instructionList.add(findHandlerInstruction);
         }
 
@@ -664,11 +706,20 @@ public class DefaultServiceInstructionConverter implements IServiceInstructionCo
 
         // #4 检查传入的被维护方是否存在
         {
+            IValueExpression existsValueExpression = null;
+
+            IValueExpression getHandledEntityId = handledEntityVariableValueExpression.invokeMethod(handledIdGetterMethod.getName());
+            if (project.getSpringBootVersion().getMajorVersion() == 1) {
+                existsValueExpression = handledDAOFieldValueExpression
+                        .invokeMethod("findOne", getHandledEntityId);
+            } else {
+                existsValueExpression = handledDAOFieldValueExpression
+                        .invokeMethod("findById", getHandledEntityId)
+                        .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            }
+
             IInstruction checkExistenceInstruction =
-                    InstructionFactory.variableDeclaration(handledEntityClass.getType(), "exists",
-                            handledDAOFieldValueExpression.invokeMethod("findOne", new Object[]{
-                                    handledEntityVariableValueExpression.invokeMethod(handledIdGetterMethod.getName())
-                            }));
+                    InstructionFactory.variableDeclaration(handledEntityClass.getType(), "exists", existsValueExpression);
             instructionList.add(InstructionFactory.emptyInstruction());
             instructionList.add(checkExistenceInstruction);
         }

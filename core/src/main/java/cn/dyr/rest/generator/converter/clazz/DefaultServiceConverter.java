@@ -26,7 +26,9 @@ import cn.dyr.rest.generator.java.meta.factory.TypeInfoFactory;
 import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
+import cn.dyr.rest.generator.java.meta.flow.expression.VariableExpression;
 import cn.dyr.rest.generator.java.meta.parameters.Parameter;
+import cn.dyr.rest.generator.project.Project;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 
@@ -64,6 +66,9 @@ public class DefaultServiceConverter implements IServiceConverter {
 
     @DataInject(DataInjectType.CONFIG)
     private ConverterConfig converterConfig;
+
+    @DataInject(DataInjectType.PROJECT)
+    private Project project;
 
     /**
      * 创建分页查询的方法
@@ -106,19 +111,30 @@ public class DefaultServiceConverter implements IServiceConverter {
 
         // 2. 创建相应的指令
         String daoFieldName = this.convertDataContext.getDAODefaultFieldName(entityInfo.getName());
-        IValueExpression returnValue = ValueExpressionFactory.variable(daoFieldName)
-                .invokeMethod("findOne", new Object[]{
-                        ValueExpressionFactory.variable("id")
-                });
-        IInstruction returnInstruction = InstructionFactory.returnInstruction(returnValue);
 
-        // 3. 创建方法的基本信息并返回
-        return new MethodInfo()
+        MethodInfo targetMethod = new MethodInfo()
                 .setName("find")
                 .setPublic()
                 .setReturnValueType(entityType)
-                .addParameter(ParameterFactory.create(idType, "id"))
-                .setRootInstruction(returnInstruction);
+                .addParameter(ParameterFactory.create(idType, "id"));
+
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            IValueExpression returnValue = ValueExpressionFactory.variable(daoFieldName)
+                    .invokeMethod("findOne", new Object[]{
+                            ValueExpressionFactory.variable("id")
+                    });
+            IInstruction returnInstruction = InstructionFactory.returnInstruction(returnValue);
+            targetMethod.setRootInstruction(returnInstruction);
+        } else {
+            IValueExpression optional = ValueExpressionFactory.variable(daoFieldName)
+                    .invokeMethod("findById", new Object[]{
+                            ValueExpressionFactory.variable("id")
+                    }).invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            targetMethod.setRootInstruction(InstructionFactory.returnInstruction(optional));
+        }
+
+        // 3. 创建方法的基本信息并返回
+        return targetMethod;
     }
 
     /**
@@ -236,6 +252,8 @@ public class DefaultServiceConverter implements IServiceConverter {
                 case ONE_TO_MANY:
                     instruction = this.instructionConverter.oneToManyHandlerServiceSave(handler, entityVariableName);
                     break;
+                default:
+                    throw new RuntimeException("Unknown Relationship Type: " + type);
             }
 
             if (instruction != null) {
@@ -286,13 +304,25 @@ public class DefaultServiceConverter implements IServiceConverter {
         // 本实体类的 DAO 调用
         IInstruction saveInstruction = InstructionFactory.invoke(daoFieldValueExpression, "save",
                 new Object[]{ValueExpressionFactory.variable(entityVariableName)});
-        IInstruction returnInstruction = InstructionFactory.returnInstruction(
-                ValueExpressionFactory.thisReference()
-                        .accessField(daoFieldName)
-                        .invokeMethod("findOne", new Object[]{
-                                ValueExpressionFactory.variable(entityVariableName)
-                                        .invokeMethod(idGetterMethod.getName())
-                        }));
+        IInstruction returnInstruction = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            returnInstruction = InstructionFactory.returnInstruction(
+                    ValueExpressionFactory.thisReference()
+                            .accessField(daoFieldName)
+                            .invokeMethod("findOne", new Object[]{
+                                    ValueExpressionFactory.variable(entityVariableName)
+                                            .invokeMethod(idGetterMethod.getName())
+                            }));
+        } else {
+            IValueExpression returnValue = ValueExpressionFactory.thisReference()
+                    .accessField(daoFieldName)
+                    .invokeMethod("findById", new Object[]{
+                            ValueExpressionFactory.variable(entityVariableName)
+                                    .invokeMethod(idGetterMethod.getName())
+                    })
+                    .invokeMethod("orElse", ValueExpressionFactory.nullExpression());
+            returnInstruction = InstructionFactory.returnInstruction(returnValue);
+        }
 
         // 将所有操作关联关系的指令拼合在一起
         List<IInstruction> targetRelationshipOperationInstruction = new ArrayList<>();
@@ -335,10 +365,18 @@ public class DefaultServiceConverter implements IServiceConverter {
                         ValueExpressionFactory.nullExpression());
 
         // 寻找数据中存在的实体
-        IInstruction findExistInstruction = InstructionFactory.variableDeclaration(entityClass.getType(), "found",
-                daoValueExpression.invokeMethod("findOne", new Object[]{
-                        ValueExpressionFactory.variable("id")
-                }));
+        IInstruction findExistInstruction = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            findExistInstruction = InstructionFactory.variableDeclaration(entityClass.getType(), "found",
+                    daoValueExpression.invokeMethod("findOne", new Object[]{
+                            ValueExpressionFactory.variable("id")
+                    }));
+        } else {
+            findExistInstruction = InstructionFactory.variableDeclaration(entityClass.getType(), "found",
+                    daoValueExpression.invokeMethod("findById", new Object[]{
+                            ValueExpressionFactory.variable("id")
+                    }).invokeMethod("orElse", ValueExpressionFactory.nullExpression()));
+        }
 
         // 调用 DAO 的删除方法前对级联的信息进行处理
         IInstruction cascadeDeleteInstruction = InstructionFactory.invoke(
@@ -401,13 +439,18 @@ public class DefaultServiceConverter implements IServiceConverter {
         Objects.requireNonNull(idGetterMethod, "id get method not found!");
 
         // Service #1 #2 检查数据库是否已经存在这个对象
-        IInstruction existCheckInstruction = InstructionFactory.variableDeclaration(
-                entityClass.getType(), "exists",
-                daoFieldValueExpression
-                        .invokeMethod("findOne", new Object[]{
-                                entityVariable
-                                        .invokeMethod(idGetterMethod.getName())
-                        }));
+        IInstruction existCheckInstruction = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            existCheckInstruction = InstructionFactory.variableDeclaration(
+                    entityClass.getType(), "exists",
+                    daoFieldValueExpression
+                            .invokeMethod("findOne", new Object[]{entityVariable.invokeMethod(idGetterMethod.getName())}));
+        } else {
+            existCheckInstruction = InstructionFactory.variableDeclaration(entityClass.getType(), "exists",
+                    daoFieldValueExpression
+                            .invokeMethod("findById", new Object[]{entityVariable.invokeMethod(idGetterMethod.getName())})
+                            .invokeMethod("orElse", ValueExpressionFactory.nullExpression()));
+        }
 
         // Service #2 调用 DAO 的保存函数
         IInstruction updateInstruction = InstructionFactory.invoke(

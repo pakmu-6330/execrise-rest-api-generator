@@ -31,4 +31,14 @@ public class SpringDataTypeFactory {
         return TypeInfoFactory.fromClass(SpringDataConstant.INTERFACE_PAGEABLE);
     }
 
+    /**
+     * Optional 对象类型
+     * @param typeInfo 原始类型
+     * @return 经过 Optional 包装的类型
+     */
+    public static TypeInfo optional(TypeInfo typeInfo) {
+        TypeInfo optionalType = TypeInfoFactory.fromClass(SpringDataConstant.TYPE_OPTIONAL);
+        return TypeInfoFactory.wrapGenerics(optionalType, typeInfo);
+    }
+
 }

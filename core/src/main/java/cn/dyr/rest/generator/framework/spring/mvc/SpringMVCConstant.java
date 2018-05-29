@@ -172,4 +172,9 @@ public class SpringMVCConstant {
      * 表示 WebMvcConfigurerAdapter 类的类全名
      */
     public static final String WEB_MVC_CONFIGURER_ADAPTER = "org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter";
+
+    /**
+     * 表示 WebMvcConfigurer 类的接口全名
+     */
+    public static final String WEB_MVC_CONFIGURER_INTERFACE = "org.springframework.web.servlet.config.annotation.WebMvcConfigurer";
 }

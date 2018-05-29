@@ -30,6 +30,7 @@ import cn.dyr.rest.generator.java.meta.factory.ValueExpressionFactory;
 import cn.dyr.rest.generator.java.meta.flow.IInstruction;
 import cn.dyr.rest.generator.java.meta.flow.expression.IValueExpression;
 import cn.dyr.rest.generator.java.meta.parameters.Parameter;
+import cn.dyr.rest.generator.project.Project;
 import cn.dyr.rest.generator.util.ClassInfoUtils;
 import cn.dyr.rest.generator.util.StringUtils;
 import net.oschina.util.Inflector;
@@ -44,6 +45,7 @@ import static cn.dyr.rest.generator.converter.ConvertDataContext.TYPE_RESOURCE_C
 import static cn.dyr.rest.generator.converter.ConverterInjectType.NAME;
 import static cn.dyr.rest.generator.converter.DataInjectType.CONFIG;
 import static cn.dyr.rest.generator.converter.DataInjectType.DATA_CONTEXT;
+import static cn.dyr.rest.generator.converter.DataInjectType.PROJECT;
 
 /**
  * 控制器方法转换的默认实现类
@@ -58,6 +60,9 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
 
     @DataInject(CONFIG)
     private ConverterConfig converterConfig;
+
+    @DataInject(PROJECT)
+    private Project project;
 
     @ConverterInject(NAME)
     private INameConverter nameConverter;
@@ -99,17 +104,23 @@ public class DefaultControllerMethodConverter implements IControllerMethodConver
                         }));
 
         // #2 将原始的实体对象转换成 HATEOAS 的资源对象
+        IValueExpression mapValueExpression = null;
+        if (project.getSpringBootVersion().getMajorVersion() == 1) {
+            mapValueExpression = ValueExpressionFactory.variable(rawVariableName)
+                    .invokeMethod("map", ValueExpressionFactory.variable(assemblerFieldName));
+        } else {
+            mapValueExpression = ValueExpressionFactory.variable(rawVariableName)
+                    .invokeMethod("map", ValueExpressionFactory.variable(assemblerFieldName + "::toResource"));
+        }
+
         String pagedVariableName = "paged" + StringUtils.upperFirstLatter(rawVariableName);
         IInstruction mapInstruction = InstructionFactory.variableDeclaration(
                 SpringDataTypeFactory.pageTypeWithGeneric(resourceType),
-                pagedVariableName,
-                ValueExpressionFactory.variable(rawVariableName).invokeMethod("map", new Object[]{
-                        ValueExpressionFactory.variable(assemblerFieldName)
-                })
+                pagedVariableName, mapValueExpression
         );
 
         // #3 将这些资源打包成分页的资源
-        String packagedName = (pagedVariableName.equals("pagedResource") ? "pagedResult" : "pagedResource");
+        String packagedName = ("pagedResource".equals(pagedVariableName) ? "pagedResult" : "pagedResource");
         IInstruction packageInstruction = InstructionFactory.variableDeclaration(retBodyType,
                 packagedName, ValueExpressionFactory.invokeConstructor(retBodyType, new Object[]{
                         ValueExpressionFactory.variable(pagedVariableName)
